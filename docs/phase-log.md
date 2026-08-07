@@ -342,6 +342,39 @@ device. The Phase 0 done-state (grey-box scene running with joystick, follow cam
 frame-time readout) is verified the moment the owner opens the app; the ten-minute
 device pass is still to run. The installed build boots the Heartwood slice scene.
 
+### 2026-08-07 — Launch crash found by bisection: editor-baked NavMesh corrupts the packed scene
+
+The installed build crashed on boot: `The file '...level0' is corrupted!`,
+`[Position out of bounds!]`, signal 5, grey screen for a second.
+
+Hypotheses eliminated in order, each by a full rebuild-and-launch cycle with the
+console attached via `devicectl`:
+
+1. ios-deploy transfer corruption — reinstalled with `devicectl`: same crash.
+2. `-nographics` export — exported with graphics: same crash.
+3. Unsaved in-memory NavMeshData reference — persisted as asset: same crash
+   (this WAS a real serialization bug — the pre-fix level0 was 34 KB longer than its
+   own header claimed — but fixing it did not stop the crash).
+4. Stale device container — full uninstall + reinstall: same crash.
+5. Half-stale Data folder from incremental export — fully clean export: same crash.
+
+**The decisive bisect:** the Greybox scene (no NavMesh) shipped alone — **runs on
+device**, confirmed by process liveness and by the owner's eyes: grey-box room,
+joystick, follow camera, frame-time HUD all live. That is the Phase 0 done-state,
+observed. Then Heartwood WITHOUT its NavMesh bake — **also runs**. The editor-time
+NavMesh bake was the single poison: a batch-generated scene saved with baked
+NavMeshData produces a level0 the iOS player rejects, whether the data is an asset
+or not.
+
+**Permanent fix:** `RuntimeNavMesh` — the scene ships with an unbaked
+`NavMeshSurface`, and the mesh is built on device at scene start, before the NPC
+binders wake (execution order −900). One-time cost well under a second for a world
+this size, logged by the component. The editor bake is deleted, not conditionally
+kept: a code path that corrupts builds does not deserve a flag.
+
+Trust-on-uninstall note for future sessions: uninstalling the app resets the
+developer-profile trust on the phone; reinstalling over the top does not.
+
 ---
 
 ## What the next session should do

@@ -80,7 +80,13 @@ namespace HiddenValley.Editor
             foreach (var jn in layout["npcs"] ?? new JArray())
                 Npc((JObject)jn);
 
-            BakeNavMesh();
+            // The NavMesh is built at runtime by RuntimeNavMesh. An editor-time bake
+            // corrupts the packed scene on iOS — see phase log, 2026-08-07.
+            var navGo = new GameObject("NavMesh") { isStatic = true };
+            var navSurface = navGo.AddComponent<NavMeshSurface>();
+            navSurface.collectObjects = CollectObjects.All;
+            navSurface.layerMask = ~(1 << ActorLayer);
+            navGo.AddComponent<RuntimeNavMesh>();
 
             EditorSceneManager.SaveScene(scene, ScenePath);
 
@@ -308,15 +314,6 @@ namespace HiddenValley.Editor
             ProjectSetup.Bind(hud, "player", player.transform);
 
             return controls;
-        }
-
-        private static void BakeNavMesh()
-        {
-            var go = new GameObject("NavMesh");
-            var surface = go.AddComponent<NavMeshSurface>();
-            surface.collectObjects = CollectObjects.All;
-            surface.layerMask = ~(1 << ActorLayer);
-            surface.BuildNavMesh();
         }
 
         // ---- json helpers -----------------------------------------------------
