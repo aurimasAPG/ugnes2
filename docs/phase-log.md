@@ -3,14 +3,15 @@
 The running record. Read this first. A pass that is not recorded here did not happen; a
 gate that is not marked here is not cleared.
 
-**Current state:** Phase 0 — **not started.** No phase gate has been cleared, because
-every gate in the protocol requires a physical device and this environment has none
-(blocker B1). Substantial source and content exist and are tested; that is not the same
-as a cleared gate and is not recorded as one.
+**Current state:** Phase 0 — **in progress on the owner's Mac** (2026-08-07, second
+session). Unity 6 LTS is installing; the Phase 0 runtime pieces and a headless project
+setup command are authored. Blocked on three user-only steps: Unity license sign-in,
+a connected iPhone, and an Apple ID in Xcode. See B1 (revised) and the 2026-08-07 Mac
+session entry.
 
 | Phase | Gate | State |
 |---|---|---|
-| 0 — Foundation spike | Build reaches device in <10 min from one command? | ⬜ Not started — needs a Mac + device (B1) |
+| 0 — Foundation spike | Build reaches device in <10 min from one command? | 🟨 In progress — toolchain installing on the Mac; needs license + device (B1) |
 | 1 — Traversal feel | Camera never clips, never loses player, over 5 min adversarial? | ⬜ Not started |
 | 2 — Systems skeleton | Was the C# diff genuinely empty? | 🟨 **Data-driven half demonstrated.** Gate not cleared — see below |
 | 3 — Content + first art | Interest-density walk passes, no 40s dead stretch? | ⬜ Not started — no layout, no art |
@@ -55,7 +56,25 @@ compiled by Unity. The gate stays amber until someone runs it on a device.
 
 ## Blockers
 
-### B1 — No game toolchain in the execution environment (2026-08-07, OPEN)
+### B1 — No game toolchain in the execution environment (2026-08-07, MOSTLY RESOLVED)
+
+**Revised 2026-08-07, Mac session.** The original blocker described the Linux agent
+container. This session runs on the owner's MacBook Pro (Apple silicon, Xcode 26.6):
+
+- .NET 8 SDK installed (user-level, `~/.dotnet`); **all 22 tests pass on this machine.**
+- Unity Hub installed; Unity **6000.0.81f1 + iOS module** installing headlessly.
+
+Still open, and all three are user-only steps:
+
+1. **Unity license** — open Unity Hub once and sign in (free Personal license
+   activates automatically). Batch mode refuses to run unlicensed.
+2. **Device** — no iPhone connected (`xctrace list devices` shows none).
+3. **Signing** — zero codesigning identities on this Mac; sign into Xcode with an
+   Apple ID (Settings → Accounts), and set `TEAM_ID` for `tools/build-ios.sh`.
+
+Original entry follows for the record.
+
+### B1 (original) — No game toolchain in the execution environment (2026-08-07, superseded)
 
 Linux x86_64. Verified absent: `unity`, `unity-editor`, `godot`, `mono`, `xcodebuild`. No
 macOS host, no Xcode, no signing identity, no TestFlight, no device.
@@ -182,20 +201,61 @@ resources, the mystery's structure.
 no UI exist. These are the highest-risk remaining items — silhouette is where IP problems
 actually live — and the next pass is triggered by whichever lands first.
 
+### 2026-08-07 — Mac session: toolchain + the missing Phase 0 runtime
+
+Actor: Claude Code (`claude-fable-5`), on the owner's MacBook Pro.
+
+**Toolchain.** .NET 8 SDK (user-level), Unity Hub, Unity 6000.0.81f1 + iOS module
+(headless install). `dotnet test` on this machine: **22/22 pass, 42 ms** — the Core
+engine is verified on macOS/arm64, not just in the Linux container.
+
+**Gap found and closed.** The Phase 0 done-state requires a touch joystick, a follow
+camera and the frame-time readout in a grey-box room on device. The HUD existed; the
+joystick, the player controller, the camera and the scene did not. Authored:
+
+- `PlayerController.cs` — CharacterController movement, camera-relative, explicit
+  accel/decel/turn-rate fields as the Phase 1 tuning surface, sprint, jump.
+- `FollowCamera.cs` — no free orbit (cannot lose the player by construction),
+  sphere-cast occlusion pulled in instantly and released eased, exponential damping
+  that is framerate-independent.
+- `TouchControls.cs` — floating left-half joystick from raw touches, right-half
+  tap = jump / hold = sprint, desktop fallback in the editor, IMGUI overlay (no
+  canvas in grey-box builds).
+- `Editor/ProjectSetup.cs` — one headless command
+  (`-executeMethod HiddenValley.Editor.ProjectSetup.All`) that configures URP for
+  mobile (no HDR, MSAA 4x, 45 m shadows), sets iOS player settings (landscape-only,
+  iOS 16 floor, provisional bundle id `lt.apgmedia.hiddenvalley`), sets the input
+  handler to Both, and generates the grey-box room — perimeter, tight alcove, narrow
+  corridor, pillars, a 20° ramp and a 0.25 m staircase, i.e. the exact furniture the
+  Phase 1 adversarial camera test names — then registers the scene in Build Settings.
+- `ProjectSettings/ProjectVersion.txt` pinned to 6000.0.81f1.
+
+**None of the Unity-layer code has compiled yet** — that is the first thing to run
+once the license exists. Treat everything above as reviewed-but-unverified source,
+same status as the adapter layer.
+
+Passes run this entry: **none.** No device, no build. The derivativeness exposure of
+this entry is low (grey-box geometry, a floating joystick and tap-to-jump are genre
+furniture, not property signatures) but it is recorded as *not run*, not as passed.
+
 ---
 
 ## What the next session should do
 
 In priority order, and none of it is guesswork:
 
-1. **Answer `[CONFIRM]` #5 and #8.** Art pipeline gates Phase 3 scoping; the title gates
-   everything downstream of a name.
-2. **Open the project in Unity 6 on the Mac and make it compile.** The adapter layer is
-   unverified source. Expect package-version reconciliation and some API drift.
-3. **Run `tools/build-ios.sh` and clear the Phase 0 gate** — or find out the build loop is
-   slow, which is exactly what that gate exists to surface early.
-4. **Then Phase 1, and do not skip it.** Movement that is merely acceptable caps the
-   project's ceiling, and no amount of the content in this repo compensates.
+1. **Owner: the three user-only steps in B1** — sign into Unity Hub, plug in the
+   iPhone, sign into Xcode. Ten minutes of clicking, and everything below unblocks.
+2. **Compile.** `Unity -quit -batchmode -projectPath . -executeMethod
+   HiddenValley.Editor.ProjectSetup.All` — first compile of the whole Unity layer,
+   then URP + scene generation in one shot. Expect package reconciliation and some
+   API drift; fix until the command exits clean.
+3. **Run `tools/build-ios.sh` and clear the Phase 0 gate** — or find out the build loop
+   is slow, which is exactly what that gate exists to surface early.
+4. **Then Phase 1, and do not skip it.** The grey-box room already contains the
+   adversarial furniture (alcove, corridor, ramp, steps); hand the phone to two people.
+5. **Answer `[CONFIRM]` #5 and #8.** Art pipeline gates Phase 3 scoping; the title
+   gates everything downstream of a name.
 
 Grey-box the village-plus-forest layout and walk it for interest density **before** any
 art exists. Interest density is a layout property, and re-laying-out a finished scene is
