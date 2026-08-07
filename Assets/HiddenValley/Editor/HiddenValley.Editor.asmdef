@@ -1,0 +1,8 @@
+{
+    "name": "HiddenValley.Editor",
+    "rootNamespace": "HiddenValley.Editor",
+    "references": [ "HiddenValley.Core", "HiddenValley.Unity" ],
+    "includePlatforms": [ "Editor" ],
+    "excludePlatforms": [],
+    "autoReferenced": true
+}

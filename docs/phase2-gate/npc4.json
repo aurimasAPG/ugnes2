@@ -1,0 +1,154 @@
+{
+  "_readme": [
+    "This file is the Phase 2 gate demonstration and is NOT part of the shipped slice.",
+    "It adds a fourth NPC, a two-step quest, a new item and two world objects.",
+    "Nothing else in the repo changes to make it work — no C#, no registry, no prefab wiring.",
+    "See docs/systems-README.md and tools/phase2-gate.sh."
+  ],
+
+  "items": [
+    {
+      "id": "item.reed_bundle",
+      "name": "reed bundle",
+      "description": "Cut green and tied at both ends. Heavier than it looks and twice as awkward."
+    }
+  ],
+
+  "npcs": [
+    {
+      "id": "npc.sedge",
+      "name": "Sedge",
+      "region": "heartwood",
+      "capability_kind": "none",
+      "schedule": [
+        { "from": "dawn", "to": "dusk", "waypoint": "wp.roofline" },
+        { "from": "night", "to": "night", "waypoint": "wp.sedge_door" }
+      ],
+      "dialogue_entries": [
+        {
+          "dialogue": "dlg.sedge",
+          "node": "take_reeds",
+          "when": { "type": "quest_step", "quest": "quest.thatch", "step": "deliver", "compare": "at" }
+        },
+        {
+          "dialogue": "dlg.sedge",
+          "node": "offer_reeds",
+          "when": { "type": "quest_state", "quest": "quest.thatch", "state": "notstarted" }
+        },
+        { "dialogue": "dlg.sedge", "node": "idle" }
+      ]
+    }
+  ],
+
+  "quests": [
+    {
+      "id": "quest.thatch",
+      "title": "Before the Wet",
+      "shape": "fetch",
+      "giver": "npc.sedge",
+      "summary": "Sedge is one roof short of finished and the weather is not negotiating.",
+      "steps": [
+        {
+          "id": "gather",
+          "tracker": "Cut two bundles of reed from the channel margin.",
+          "completion": [
+            { "id": "gathered", "when": { "type": "has_item", "item": "item.reed_bundle", "count": 2 } }
+          ]
+        },
+        {
+          "id": "deliver",
+          "tracker": "Take the reed to Sedge before the rain does.",
+          "completion": []
+        }
+      ],
+      "on_complete": [
+        { "type": "take_item", "item": "item.reed_bundle", "count": 2 },
+        { "type": "give_item", "item": "item.ledger_slip", "count": 1 },
+        { "type": "set_flag", "key": "sedge.roofed", "value": "true" }
+      ]
+    }
+  ],
+
+  "world": [
+    {
+      "id": "world.reeds_1",
+      "kind": "pickup",
+      "region": "heartwood",
+      "interact_label": "Cut reed",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "reeds.1.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.reed_bundle", "count": 1 },
+        { "type": "set_flag", "key": "reeds.1.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.reeds_2",
+      "kind": "pickup",
+      "region": "heartwood",
+      "interact_label": "Cut reed",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "reeds.2.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.reed_bundle", "count": 1 },
+        { "type": "set_flag", "key": "reeds.2.taken", "value": "true" }
+      ]
+    }
+  ],
+
+  "dialogue": [
+    {
+      "id": "dlg.sedge",
+      "nodes": [
+        {
+          "id": "offer_reeds",
+          "speaker": "npc.sedge",
+          "lines": [
+            "Sedge is on the roof and does not come down to talk to you.",
+            "\"Two bundles short. Two! And the sky's got that look.\""
+          ],
+          "choices": [
+            {
+              "text": "I'll cut them.",
+              "effects": [ { "type": "start_quest", "quest": "quest.thatch" } ],
+              "goto": "reeds_detail"
+            },
+            { "text": "Good luck with that." }
+          ]
+        },
+        {
+          "id": "reeds_detail",
+          "speaker": "npc.sedge",
+          "lines": [
+            "\"Channel margin, below the third bridge. Green, not the grey — grey's dead and dead lets water through.\""
+          ]
+        },
+        {
+          "id": "take_reeds",
+          "speaker": "npc.sedge",
+          "lines": [ "\"Tell me that's two.\"" ],
+          "choices": [
+            {
+              "text": "Two bundles, cut green.",
+              "when": { "type": "has_item", "item": "item.reed_bundle", "count": 2 },
+              "effects": [ { "type": "advance_quest", "quest": "quest.thatch" } ],
+              "goto": "reeds_thanks"
+            },
+            { "text": "One so far." }
+          ]
+        },
+        {
+          "id": "reeds_thanks",
+          "speaker": "npc.sedge",
+          "lines": [
+            "She takes both bundles one-handed and is already turning back to the roof.",
+            "\"Orrel writes a slip for anyone who saves her a repair. Go and be smug at her.\""
+          ]
+        },
+        {
+          "id": "idle",
+          "speaker": "npc.sedge",
+          "lines": [ "\"Roof's dry. Ask me again in autumn.\"" ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+# Unity
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+*.csproj
+*.unityproj
+*.sln
+*.user
+*.booproj
+*.pidb
+*.suo
+sysinfo.txt
+*.apk
+*.aab
+*.unitypackage
+
+# The tools/ projects are hand-written and must be tracked, unlike Unity's generated ones.
+!tools/**/*.csproj
+
+# .NET
+bin/
+[Bb]in/
+artifacts/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,254 @@
+{
+  "npcs": [
+    {
+      "id": "npc.vesk",
+      "name": "Vesk",
+      "region": "heartwood",
+      "capability_kind": "recipe_family",
+      "schedule": [
+        { "from": "dawn", "to": "dusk", "waypoint": "wp.kiln" },
+        { "from": "night", "to": "night", "waypoint": "wp.vesk_door" }
+      ],
+      "dialogue_entries": [
+        {
+          "dialogue": "dlg.vesk",
+          "node": "take_sand",
+          "when": { "type": "quest_step", "quest": "quest.kiln_ash", "step": "deliver", "compare": "at" }
+        },
+        {
+          "dialogue": "dlg.vesk",
+          "node": "offer_sand",
+          "when": { "type": "quest_state", "quest": "quest.kiln_ash", "state": "notstarted" }
+        },
+        {
+          "_note": "Deliberately below the sand quest. Vesk is uninterested until you are useful, and a player who finds the bark before meeting him should still get his introduction first.",
+          "dialogue": "dlg.vesk",
+          "node": "ash_talk",
+          "when": {
+            "type": "all",
+            "of": [
+              { "type": "clue_known", "clue": "clue.scorched_bark" },
+              { "type": "not", "of": { "type": "clue_known", "clue": "clue.kiln_ash" } }
+            ]
+          }
+        },
+        {
+          "dialogue": "dlg.vesk",
+          "node": "take_lens",
+          "when": { "type": "quest_step", "quest": "quest.lens", "step": "show", "compare": "at" }
+        },
+        {
+          "dialogue": "dlg.vesk",
+          "node": "offer_lens",
+          "when": {
+            "type": "all",
+            "of": [
+              { "type": "quest_state", "quest": "quest.kiln_ash", "state": "completed" },
+              { "type": "quest_state", "quest": "quest.lens", "state": "notstarted" }
+            ]
+          }
+        },
+        { "dialogue": "dlg.vesk", "node": "idle" }
+      ]
+    }
+  ],
+
+  "quests": [
+    {
+      "id": "quest.kiln_ash",
+      "title": "Kiln-Ash",
+      "shape": "fetch",
+      "giver": "npc.vesk",
+      "summary": "Vesk cannot fire without clean sand, and will not send anyone else for it.",
+      "steps": [
+        {
+          "id": "gather",
+          "tracker": "Gather three measures of white sand from the channel bank.",
+          "completion": [
+            { "id": "gathered", "when": { "type": "has_item", "item": "item.white_sand", "count": 3 } }
+          ]
+        },
+        {
+          "id": "deliver",
+          "tracker": "Take the sand to Vesk at the kiln.",
+          "completion": []
+        }
+      ],
+      "on_complete": [
+        { "type": "take_item", "item": "item.white_sand", "count": 3 },
+        { "type": "learn_recipe", "family": "lensmithing" },
+        { "type": "set_flag", "key": "vesk.taught", "value": "true" }
+      ]
+    },
+
+    {
+      "id": "quest.lens",
+      "title": "A Lens for Reading",
+      "shape": "craft-to-spec",
+      "giver": "npc.vesk",
+      "summary": "Coll's setting plate is weathered past reading. Vesk knows what would fix that.",
+      "steps": [
+        {
+          "id": "make",
+          "tracker": "Grind a reading lens at Vesk's kiln.",
+          "completion": [
+            {
+              "id": "crafted",
+              "documented": true,
+              "when": { "type": "has_item", "item": "item.reading_lens", "count": 1 }
+            },
+            {
+              "id": "drowned",
+              "documented": false,
+              "when": { "type": "has_item", "item": "item.drowned_lens", "count": 1 }
+            }
+          ]
+        },
+        {
+          "id": "show",
+          "tracker": "Show the lens to Vesk.",
+          "completion": []
+        }
+      ],
+      "on_complete": [
+        { "type": "set_flag", "key": "lens.done", "value": "true" }
+      ]
+    }
+  ],
+
+  "dialogue": [
+    {
+      "id": "dlg.vesk",
+      "nodes": [
+        {
+          "id": "offer_sand",
+          "speaker": "npc.vesk",
+          "lines": [
+            "Vesk does not look up from the kiln mouth.",
+            "\"If you're here to watch, stand further back. If you're here to be useful, I'm short of sand.\""
+          ],
+          "choices": [
+            {
+              "text": "What kind of sand?",
+              "effects": [ { "type": "start_quest", "quest": "quest.kiln_ash" } ],
+              "goto": "sand_detail"
+            },
+            { "text": "Just watching." }
+          ]
+        },
+        {
+          "id": "sand_detail",
+          "speaker": "npc.vesk",
+          "lines": [
+            "\"White. Off the bank where the water sorts it — the current does the sieving, I don't have to.\"",
+            "\"Three measures. Don't scoop the grey, it's got iron in it and it'll spit at me.\""
+          ]
+        },
+        {
+          "id": "take_sand",
+          "speaker": "npc.vesk",
+          "lines": [ "\"Well?\"" ],
+          "choices": [
+            {
+              "text": "Three measures, all white.",
+              "when": { "type": "has_item", "item": "item.white_sand", "count": 3 },
+              "effects": [ { "type": "advance_quest", "quest": "quest.kiln_ash" } ],
+              "goto": "sand_thanks"
+            },
+            { "text": "Still gathering." }
+          ]
+        },
+        {
+          "id": "sand_thanks",
+          "speaker": "npc.vesk",
+          "lines": [
+            "Vesk takes the sand, weighs it in one hand, and grunts in a way that is apparently approval.",
+            "\"Right. You've seen the whole of it now — the sand, the heat, the cooling. That's the work.\"",
+            "\"Come and grind whatever you like. Blanks, reading glass, the wide sort, the burning sort. You know where the kiln is.\""
+          ]
+        },
+        {
+          "id": "offer_lens",
+          "speaker": "npc.vesk",
+          "lines": [
+            "\"Coll's been up here twice asking about that plate of his. The one at the gear housing.\"",
+            "\"Cut stone, weathered flat. You'd need to bring your eye to within an inch of it, and nobody's eye works at an inch.\""
+          ],
+          "choices": [
+            {
+              "text": "So make something that does.",
+              "effects": [ { "type": "start_quest", "quest": "quest.lens" } ],
+              "goto": "lens_detail"
+            },
+            { "text": "Sounds like Coll's problem." }
+          ]
+        },
+        {
+          "id": "lens_detail",
+          "speaker": "npc.vesk",
+          "lines": [
+            "\"A reading lens. Blank first, then grind it down. Flat on the rim so it sits on the stone without rocking.\"",
+            "\"It's not difficult. It's just fussy, and Coll's hands shake now.\""
+          ]
+        },
+        {
+          "id": "take_lens",
+          "speaker": "npc.vesk",
+          "lines": [ "\"Let's see it, then.\"" ],
+          "choices": [
+            {
+              "text": "Ground it this morning.",
+              "when": { "type": "has_item", "item": "item.reading_lens", "count": 1 },
+              "effects": [ { "type": "advance_quest", "quest": "quest.lens" } ],
+              "goto": "lens_thanks"
+            },
+            {
+              "text": "I found this in the pool.",
+              "when": { "type": "has_item", "item": "item.drowned_lens", "count": 1 },
+              "effects": [ { "type": "advance_quest", "quest": "quest.lens" } ],
+              "goto": "lens_drowned"
+            },
+            { "text": "Not yet." }
+          ]
+        },
+        {
+          "id": "lens_thanks",
+          "speaker": "npc.vesk",
+          "lines": [
+            "Vesk turns it against the light, looking for the flaw he expects to find.",
+            "\"Hm. That'll read stone. Take it to him before he asks me a third time.\""
+          ]
+        },
+        {
+          "id": "lens_drowned",
+          "speaker": "npc.vesk",
+          "lines": [
+            "Vesk takes it, turns it over, and goes quiet for slightly too long.",
+            "\"...That's not mine. That's not anyone's I know of. The grind on that is better than mine and it's been in the water twenty years.\"",
+            "He hands it back, and does not entirely let go of it first.",
+            "\"Well. It'll read the plate. Whoever made it could grind, I'll say that.\""
+          ]
+        },
+        {
+          "id": "ash_talk",
+          "speaker": "npc.vesk",
+          "lines": [
+            "\"You've got that grey on your sleeve. Off the eastern trees, is it?\"",
+            "He rubs it between finger and thumb, and stops moving.",
+            "\"That's kiln ash. Not wood ash — kiln. Fired hot, fired long, and gone through twice.\"",
+            "\"My kiln was cold on the last Quietday. Cold from the night before, and I can show you the bricks.\"",
+            "\"So who's firing?\""
+          ],
+          "on_enter": [ { "type": "learn_clue", "clue": "clue.kiln_ash" } ]
+        },
+        {
+          "id": "idle",
+          "speaker": "npc.vesk",
+          "lines": [
+            "\"It's at temperature. I'm not talking through the good part.\""
+          ]
+        }
+      ]
+    }
+  ]
+}
