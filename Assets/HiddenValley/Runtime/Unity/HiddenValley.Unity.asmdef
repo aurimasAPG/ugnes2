@@ -1,0 +1,11 @@
+{
+    "name": "HiddenValley.Unity",
+    "rootNamespace": "HiddenValley.Unity",
+    "references": [ "HiddenValley.Core" ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "autoReferenced": true,
+    "noEngineReferences": false
+}

@@ -6,7 +6,7 @@ namespace HiddenValley.Core
     /// Answers "what is in the world right now, and what can the player do with it".
     ///
     /// This is where the brief's hardest architectural requirement is actually satisfied.
-    /// Orrel "changes what the world contains" and Brann "opens a space that was closed",
+    /// Orrel "changes what the world contains" and Coll "opens a space that was closed",
     /// and neither is a code path — both are world objects whose conditions flipped. The
     /// Unity layer just mirrors this into GameObject.SetActive and NavMesh obstacles.
     /// </summary>

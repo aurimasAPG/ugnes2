@@ -69,7 +69,7 @@ Layout intent, written as a level-design constraint rather than a description:
   region opens to the north-east.
 - **Three landmarks are visible from the village entrance**: the kiln smoke
   (Vesk, east bank), the ledger house (Orrel, west bank, the only two-storey
-  building), and the sluice gear housing (Brann, north end, where the channel
+  building), and the sluice gear housing (Coll, north end, where the channel
   drops out of sight). This is deliberate — it satisfies interest density at the
   moment of arrival and it teaches the map without a tutorial.
 - The channel is crossable in **three** places. Bridge placement is the primary
@@ -145,7 +145,7 @@ is quietly proving it.
   architecture, because "an NPC changes the contents of the world" is exactly the
   requirement that usually gets hardcoded.
 
-### 5.3 Brann — the sluicekeeper → **gates traversal**
+### 5.3 Coll — the sluicekeeper → **gates traversal**
 
 Minds the gear housing at the north end, where the channel drops. Old, slow,
 careful, and the only person in the valley who understood the machinery from the
@@ -168,7 +168,7 @@ whether you have thought about it.
 |---|---|---|
 | Vesk | Recipe family | Player can craft a class of item they previously could not |
 | Orrel | World contents | Object count in the world increases; a shop exists that did not |
-| Brann | Traversal | A navigable space that was closed is open |
+| Coll | Traversal | A navigable space that was closed is open |
 
 If any two of these rows could be swapped without changing the game, the brief has
 been failed. This table is machine-checked by the content validator.
@@ -215,7 +215,7 @@ treating it as a question.
    ground. Heat from *above* or from *inside* the stone.
 2. **The ash is kiln ash**, not wood ash. Vesk can identify it and is puzzled,
    because his kiln was cold on the last Quietday and he can prove it.
-3. **The channel runs warm** on Quietday mornings. Brann has known this for years
+3. **The channel runs warm** on Quietday mornings. Coll has known this for years
    and never mentioned it, because to him it is simply what the channel does.
 4. **A second kiln** exists — upstream, under the shelf, part of the old
    operation, not on any map the villagers use.
@@ -226,14 +226,14 @@ tended — recently, competently, by someone who knows the machinery. There is a
 worked routine here: a stack of fuel cut to size, a swept floor. The kiln is not
 a ruin someone forgot to put out. **Someone is deliberately keeping it warm.**
 
-Brann, asked directly, does not deny it. He has been tending it since the previous
+Coll, asked directly, does not deny it. He has been tending it since the previous
 sluicekeeper showed him how, and *she* did not explain why either. He was told to
 keep it warm and never let it go out, and he has done that for thirty years,
 because the instruction came from someone who understood the machinery better than
 he does.
 
 **The unanswered question.** Warm for *what*? The kiln heats the stone under the
-lower shelf. Something down there needs to stay above a temperature. Neither Brann
+lower shelf. Something down there needs to stay above a temperature. Neither Coll
 nor the player ever learns what it is, and the slice ends with the player having
 resolved every factual question — what the ash is, where it comes from, who tends
 it — and acquired a much better one.
@@ -243,7 +243,7 @@ hook test fails, per kill criterion 3):
 
 - The player must find clue 1 **before** anyone mentions Quietdays as a concept.
   Object first, word second.
-- Brann must be a **source of clue 3 without knowing it is a clue**. An informant
+- Coll must be a **source of clue 3 without knowing it is a clue**. An informant
   who knows they are withholding is a different, worse story.
 - The final scene contains **no antagonist and no danger**. The tension is
   entirely "this has been going on the whole time and is not for you."
@@ -288,12 +288,12 @@ the constraint. Machine-checked by the validator.
 |---|---|---|---|---|
 | 1 | Kiln-Ash | fetch | Vesk | Opens the lensmithing family |
 | 2 | A Lens for Reading | craft-to-spec | Vesk | Produces the reading lens **← the undocumented solution** |
-| 3 | The Grate | repair | Brann | Puzzle step 1 |
-| 4 | The Undersluice | unlock | Brann | Puzzle steps 2–3; opens the lower shelf |
+| 3 | The Grate | repair | Coll | Puzzle step 1 |
+| 4 | The Undersluice | unlock | Coll | Puzzle steps 2–3; opens the lower shelf |
 | 5 | Quietday | investigate | Pip / self-started | The mystery thread |
 | 6 | Countings | observe-and-report | Orrel | Opens the Trade Post and sunmoss |
 | 7 | The Long Ledger | trade | Orrel | Exercises the economy she opened |
-| 8 | Cart to the Shelf | escort | Orrel | Uses the space Brann opened |
+| 8 | Cart to the Shelf | escort | Orrel | Uses the space Coll opened |
 
 **The undocumented solution (quest 2).** The quest text says to craft a reading
 lens from Vesk's recipe. It is *also* completable by recovering the **drowned

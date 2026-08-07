@@ -48,8 +48,8 @@ namespace HiddenValley.Tests
 
             Assert.Equal(QuestState.Completed, game.State.QuestStateOf("quest.lens"));
 
-            // --- Brann: repair, then traversal ---------------------------------------
-            Say(game, "npc.brann", "I'll do it.");
+            // --- Coll: repair, then traversal ---------------------------------------
+            Say(game, "npc.coll", "I'll do it.");
             Interact(game, "world.grate_debris");
             Interact(game, "world.iron_scrap");
             Interact(game, "world.grate");
@@ -57,8 +57,8 @@ namespace HiddenValley.Tests
             Assert.Equal(QuestState.Completed, game.State.QuestStateOf("quest.grate"));
             Assert.Equal(QuestState.Active, game.State.QuestStateOf("quest.undersluice"));
 
-            // The warm-channel clue comes from Brann without him knowing it is a clue.
-            Greet(game, "npc.brann");
+            // The warm-channel clue comes from Coll without him knowing it is a clue.
+            Greet(game, "npc.coll");
             Assert.True(game.State.KnowsClue("clue.warm_channel"));
 
             Interact(game, "world.setting_plate");
@@ -87,7 +87,7 @@ namespace HiddenValley.Tests
             // --- The mystery resolves into the space the puzzle opened ---------------
             Interact(game, "world.second_kiln");
             Interact(game, "world.kiln_hearth");
-            Say(game, "npc.brann", "Someone is keeping");
+            Say(game, "npc.coll", "Someone is keeping");
 
             Assert.Equal(QuestState.Completed, game.State.QuestStateOf("quest.quietday"));
             Assert.True(game.State.GetBoolFlag("mystery.resolved"));
@@ -148,7 +148,7 @@ namespace HiddenValley.Tests
             Assert.Equal("drowned", game.State.GetFlag("solved.quest.lens.make"));
 
             // And it stays valid downstream — the drowned lens reads the plate too.
-            Say(game, "npc.brann", "I'll do it.");
+            Say(game, "npc.coll", "I'll do it.");
             Interact(game, "world.grate_debris");
             Interact(game, "world.iron_scrap");
             Interact(game, "world.grate");

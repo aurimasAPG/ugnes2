@@ -1,28 +1,28 @@
 {
   "npcs": [
     {
-      "id": "npc.brann",
-      "name": "Brann",
+      "id": "npc.coll",
+      "name": "Coll",
       "region": "heartwood",
       "capability_kind": "traversal",
       "schedule": [
         { "from": "dawn", "to": "day", "waypoint": "wp.gear_housing" },
-        { "from": "dusk", "to": "night", "waypoint": "wp.brann_step" }
+        { "from": "dusk", "to": "night", "waypoint": "wp.coll_step" }
       ],
       "dialogue_entries": [
         {
-          "dialogue": "dlg.brann",
+          "dialogue": "dlg.coll",
           "node": "kiln_confront",
           "when": { "type": "quest_step", "quest": "quest.quietday", "step": "ask", "compare": "at" }
         },
         {
-          "dialogue": "dlg.brann",
+          "dialogue": "dlg.coll",
           "node": "offer_grate",
           "when": { "type": "quest_state", "quest": "quest.grate", "state": "notstarted" }
         },
         {
           "_note": "Below the grate offer for the same reason as Vesk's ash_talk — a mystery beat must never pre-empt an unoffered quest, or the player meets a character mid-thread.",
-          "dialogue": "dlg.brann",
+          "dialogue": "dlg.coll",
           "node": "warm_talk",
           "when": {
             "type": "all",
@@ -33,11 +33,11 @@
           }
         },
         {
-          "dialogue": "dlg.brann",
+          "dialogue": "dlg.coll",
           "node": "sluice_hint",
           "when": { "type": "quest_state", "quest": "quest.undersluice", "state": "active" }
         },
-        { "dialogue": "dlg.brann", "node": "idle" }
+        { "dialogue": "dlg.coll", "node": "idle" }
       ]
     }
   ],
@@ -47,7 +47,7 @@
       "id": "quest.grate",
       "title": "The Grate",
       "shape": "repair",
-      "giver": "npc.brann",
+      "giver": "npc.coll",
       "summary": "The debris grate at the channel head has been choked since spring and broken for longer.",
       "steps": [
         {
@@ -75,7 +75,7 @@
       "id": "quest.undersluice",
       "title": "The Undersluice",
       "shape": "unlock",
-      "giver": "npc.brann",
+      "giver": "npc.coll",
       "summary": "With the grate sound, the pool can be drained the way it was meant to be — if anyone can still read the settings.",
       "steps": [
         {
@@ -246,13 +246,13 @@
 
   "dialogue": [
     {
-      "id": "dlg.brann",
+      "id": "dlg.coll",
       "nodes": [
         {
           "id": "offer_grate",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
-            "Brann is sitting on the housing with his hands on his knees, watching water go past.",
+            "Coll is sitting on the housing with his hands on his knees, watching water go past.",
             "\"You've seen the grate, then. Choked since spring, and cracked before that.\"",
             "\"I can clear it or I can climb down to it. Not both, not any more.\""
           ],
@@ -267,7 +267,7 @@
         },
         {
           "id": "grate_why",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
             "\"Keeps the channel from swallowing something it can't pass. That's all a grate is.\"",
             "\"Mind — it's not the grate that matters. It's what you can do once it holds.\""
@@ -283,7 +283,7 @@
         },
         {
           "id": "grate_detail",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
             "\"Pull the weed out first, all of it, or you'll mend around a blockage and feel clever about it.\"",
             "\"Then you'll want iron. Flat bar, hand's length. There's some up on the shelf where they left it.\""
@@ -291,7 +291,7 @@
         },
         {
           "id": "sluice_hint",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
             "\"Three paddles and a head gate. The paddles set the share, the head gate lets it go.\"",
             "\"The settings are on the plate. Don't guess them — guessing them is how the last man flooded the low road.\"",
@@ -300,7 +300,7 @@
         },
         {
           "id": "warm_talk",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
             "\"Kiln ash on the leaves.\" He says it the way you'd agree about rain. \"Aye, that'll be the warm mornings.\"",
             "\"Water at the head gate comes up warm on a Quietday. Warm to the wrist. Always has.\"",
@@ -311,7 +311,7 @@
         },
         {
           "id": "kiln_confront",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
             "He knows before you say it. He puts his hands on his knees again."
           ],
@@ -330,7 +330,7 @@
         },
         {
           "id": "kiln_answer",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
             "\"I am,\" he says. \"Have been. Thirty year, near enough.\"",
             "\"Sile had it before me. She took me down there the once, showed me the bank and the length to cut the fuel, and told me never to let it out.\"",
@@ -341,7 +341,7 @@
         },
         {
           "id": "idle",
-          "speaker": "npc.brann",
+          "speaker": "npc.coll",
           "lines": [
             "\"Water's doing what it does. I'm watching in case it stops.\""
           ]

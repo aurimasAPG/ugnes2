@@ -38,7 +38,7 @@ namespace HiddenValley.Core
         public string Title;
         public string Text;
 
-        /// <summary>Which thread this clue belongs to, for the investigation board.</summary>
+        /// <summary>Which thread this clue belongs to, for the account (the clue screen).</summary>
         public string Thread;
 
         /// <summary>Ordering hint within the thread. Not a gate — clues may be found out of order.</summary>

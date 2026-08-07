@@ -1,84 +1,90 @@
 # HIDDEN VALLEY — PHASE LOG
 
-The running record. Read this first. A pass that is not recorded here did not
-happen; a gate that is not marked here is not cleared.
+The running record. Read this first. A pass that is not recorded here did not happen; a
+gate that is not marked here is not cleared.
 
-**Current state:** Phase 0 — **not started.** Blocked on `[CONFIRM]` items 1, 3,
-4, 5, 7 and on toolchain availability (see Blockers).
+**Current state:** Phase 0 — **not started.** No phase gate has been cleared, because
+every gate in the protocol requires a physical device and this environment has none
+(blocker B1). Substantial source and content exist and are tested; that is not the same
+as a cleared gate and is not recorded as one.
 
 | Phase | Gate | State |
 |---|---|---|
-| 0 — Foundation spike | Build reaches device in <10 min from one command? | ⬜ Not started |
+| 0 — Foundation spike | Build reaches device in <10 min from one command? | ⬜ Not started — needs a Mac + device (B1) |
 | 1 — Traversal feel | Camera never clips, never loses player, over 5 min adversarial? | ⬜ Not started |
-| 2 — Systems skeleton | Was the C# diff genuinely empty? | ⬜ Not started |
-| 3 — Content + first art | Interest-density walk passes, no 40s dead stretch? | ⬜ Not started |
+| 2 — Systems skeleton | Was the C# diff genuinely empty? | 🟨 **Data-driven half demonstrated.** Gate not cleared — see below |
+| 3 — Content + first art | Interest-density walk passes, no 40s dead stretch? | ⬜ Not started — no layout, no art |
 | 4 — Play-feel + polish | ≥3 of 5 testers spontaneously want to continue? | ⬜ Not started |
+
+### Why Phase 2 is amber and not green
+
+The gate asks for a live demonstration **in the running game** that a new NPC, a new
+two-step quest and a new item can be added by editing data only, then saved, reloaded, and
+resumed at the correct step.
+
+What has been demonstrated here:
+
+- `docs/phase2-gate/npc4.json` adds a fourth NPC, a two-step quest, a new item and two
+  world objects. It is the entire change.
+- `tools/phase2-gate.sh` diffs `Assets/HiddenValley/Runtime` across the commit that added
+  it. **Runtime C# changed: none.** Verified 2026-08-07, baseline `ba0c12f`, gate commit
+  `f556370`.
+- The new NPC is playable end to end, and a save taken mid-quest reloads on the correct
+  step. Covered by `Phase2GateTests.cs`.
+
+What has **not** been demonstrated: any of it *in the running game*. There is no running
+game — there is a tested rules engine and a Unity adapter layer that has never been
+compiled by Unity. The gate stays amber until someone runs it on a device.
 
 ---
 
 ## `[CONFIRM]` — open decisions
 
-Seven answers are needed before Phase 0. Per the mission, these are logged rather
-than invented. One is now answered.
-
 | # | Decision | State |
 |---|---|---|
-| 1 | **Engine and version.** Unity 6 LTS + URP assumed by the brief's architecture. Godot 4 is a legitimate, cheaper alternative for a solo mobile build. Unreal is the wrong tool. | `[CONFIRM]` |
-| 2 | **Repository.** | ✅ **Answered 2026-08-07** — `aurimasapg/ugnes2`, greenfield. Single initial commit, `LICENSE` + stub `README.md`, no engine project, no prior source. |
-| 3 | **Target device floor.** Every performance number in the mission is meaningless without it. iPhone 13 is a reasonable modern floor; iPhone SE 2nd gen means a materially different art budget. | `[CONFIRM]` |
-| 4 | **Who is building.** Claude Code solo, Claude Code plus a contract artist, or a team? Determines whether art is a phase or a dependency. | `[CONFIRM]` |
-| 5 | **Art pipeline.** Asset-store base meshes with custom shading and custom characters, or fully bespoke? Largest single cost driver in the project. | `[CONFIRM]` |
-| 6 | **What this is for.** Commercial product, demonstration artifact (Team of Agents book / conference stage), or personal build? The stakes sentence in the mission is written for the honest default — opportunity cost — and should be replaced if a real audience or deadline is attached. | `[CONFIRM]` |
-| 7 | **Audio.** Licensed library versus commissioned original. Original audio direction across seven biomes is a commission, not a task. | `[CONFIRM]` |
+| 1 | **Engine and version.** | ✅ **Answered 2026-08-07** — Unity 6 LTS + URP. |
+| 2 | **Repository.** | ✅ **Answered 2026-08-07** — `aurimasapg/ugnes2`, greenfield. |
+| 3 | **Target device floor.** | ✅ **Answered 2026-08-07** — iPhone 13. Frame budget is therefore 16.7 ms, and `FrameTimeHud` is configured against it. |
+| 4 | **Who is building.** | 🟨 **Partly answered** — Claude Code writes source here; builds, device passes and all gates run by the owner on a Mac with the device. Whether a contract artist exists is still open, and it decides whether art is a phase or a dependency. |
+| 5 | **Art pipeline.** Asset-store base meshes with custom shading, or fully bespoke? | `[CONFIRM]` — largest single cost driver, and Phase 3 cannot be scoped without it. |
+| 6 | **What this is for.** Commercial, demonstration artifact, or personal? | `[CONFIRM]` — the stakes sentence in `/CLAUDE.md` is still the honest default (opportunity cost). |
+| 7 | **Audio.** Licensed library versus commissioned original. | `[CONFIRM]` — nothing authored. |
+| 8 | **The title "Hidden Valley".** | `[CONFIRM]` — **raised by the derivativeness pass, 2026-08-07.** Two problems: a well-known US food trademark, and a genre-adjacency read straight to *Stardew Valley*. Recommend changing. Full finding in `docs/passes/derivativeness-01.md` §2.1. |
 
 ---
 
 ## Blockers
 
-### B1 — No game toolchain in the execution environment (2026-08-07)
+### B1 — No game toolchain in the execution environment (2026-08-07, OPEN)
 
-The agent environment is Linux x86_64. Verified absent: `unity`, `unity-editor`,
-`godot`, `dotnet`, `mono`, `csc`, `xcodebuild`. There is no macOS host, no Xcode,
-no code-signing identity, no TestFlight access, and no physical iOS device.
+Linux x86_64. Verified absent: `unity`, `unity-editor`, `godot`, `mono`, `xcodebuild`. No
+macOS host, no Xcode, no signing identity, no TestFlight, no device.
 
-Consequence, stated plainly rather than worked around:
+**Partially mitigated 2026-08-07.** The .NET 8 SDK was installed into the session
+scratchpad, and the game's rules were deliberately written as plain C# with
+`"noEngineReferences": true` on the Core assembly definition. The rules therefore compile
+and test here — 22 tests, including a scripted playthrough of the whole slice. Unity
+compiles the same files.
 
-- **Phase 0's gate cannot be executed here.** It requires a build reaching a
-  physical device.
-- **Phase 1's gate cannot be executed here.** It requires on-device adversarial
-  camera testing and two human testers.
-- **Phase 3 and 4 gates cannot be executed here.** Stopwatch walks and five
-  observed human testers are physical acts.
-- **The device pass (§3.1) cannot be run here** for any phase.
+**Still blocked, and not worked around:** every phase gate, the device pass, the
+interest-density walk, and all human testing. The Unity adapter layer
+(`Assets/HiddenValley/Runtime/Unity`, `Assets/HiddenValley/Editor`) has **never been
+compiled**, because compiling it requires Unity. Treat it as reviewed-but-unverified
+source.
 
-What *can* be produced in this environment without lying about a gate: engine
-project scaffolding, the data schemas and content-authoring layer, the C# or
-GDScript systems source, the content data files, the beat sheet, and the systems
-README. What cannot: any measurement, any gate clearance, any pass.
+### B2 — World bible was absent (2026-08-07, RESOLVED by decision)
 
-**This blocker does not have a workaround inside the environment.** It needs either
-a macOS + device build host driving this repo, or an explicit decision to treat
-this repo as source-only and run gates elsewhere. That decision is upstream of
-`[CONFIRM]` #4.
+The original 36-section document was never supplied. On 2026-08-07 the owner chose
+explicitly to have the world bible drafted by the agent and flagged as such, rather than
+leave content blocked. `docs/world-bible.md` carries a provenance header. Every name in it
+is subject to owner veto.
 
-### B2 — World bible absent (2026-08-07)
+### B3 — Calendar kill criterion is 25 days out (2026-08-07, OPEN)
 
-`/CLAUDE.md` cites `/docs/world-bible.md` as the source for lore, names and
-character material. The original 36-section design document was not supplied to
-this repo. `/docs/world-bible.md` is currently a stub.
-
-Until it is supplied, Heartwood, Pip, the 3 NPCs, the mystery thread and all naming
-have no source material. Inventing them would violate the mission's instruction to
-mark unknowns rather than invent answers, and would also pre-empt the
-derivativeness pass, which needs deliberate names to check rather than
-autocompleted ones.
-
-### B3 — Calendar kill criterion is 25 days out (2026-08-07)
-
-Kill criterion 4 parks the project until 6 October if the Phase 2 gate is not
-cleared by **1 September**. As of this entry that is 25 days away, with Phase 0 not
-started and B1 unresolved. Flagging early because the criterion is a date, not an
-effort threshold — it does not move if the work starts late.
+Kill criterion 4 parks the project until 6 October if the Phase 2 gate is not cleared by
+**1 September**. As of this entry that is 25 days away. The gate's data-driven half is
+demonstrated; what remains is a working Unity project and a device, which is mostly
+`[CONFIRM]` #4 and #5 rather than engineering time.
 
 ---
 
@@ -88,15 +94,109 @@ effort threshold — it does not move if the work starts late.
 
 Actor: Claude Code (`claude-opus-5`), branch `claude/hidden-valley-build-brief-mvnjdu`.
 
-Done:
+`/CLAUDE.md` (the mission), `/docs/build-protocol.md` (gates, passes, kill criteria),
+this log, and a world-bible stub.
 
-- `/CLAUDE.md` — the mission, plus standing rules for agents working in the repo.
-- `/docs/build-protocol.md` — §2 phase gates, §3 the three passes, §4 kill criteria.
-- `/docs/phase-log.md` — this file.
-- `/docs/world-bible.md` — stub, see B2.
+Passes run: **none.** Repo setup is not a phase and has no gate.
 
-Not done, and not claimed: no engine project, no source, no build, no
-measurements. No phase opened. No gate cleared. No pass run.
+### 2026-08-07 — World bible authored
 
-Passes run this entry: **none.** Repo setup is not a phase and has no gate; running
-a device pass against four Markdown files would be theatre.
+`docs/world-bible.md`. Heartwood, the Ash Shelf, Pip, the three NPCs, the Quietday mystery
+with its resolution and its unanswered question, the Undersluice puzzle chain, the eight
+quests and their shapes, and a naming convention so future names are derivable.
+
+The three NPCs were designed **from their systems contribution outward** — Vesk grants a
+recipe family, Orrel changes what the world contains, Coll opens a closed space — and
+personality applied afterwards. The puzzle chain deliberately forces two of them to
+compose: the setting plate needs a lens, so Coll's traversal gate depends on Vesk's
+crafting family.
+
+Flagged throughout as agent-authored. See B2.
+
+### 2026-08-07 — Core, content, validator, Phase 2 gate demo
+
+**Engine.** `Assets/HiddenValley/Runtime/Core` — a closed condition/effect vocabulary that
+all content composes from, plus generic interpreters for quests, dialogue, crafting,
+world state, time of day and save/load. No `UnityEngine` reference, enforced by the
+assembly definition.
+
+The architectural decision worth recording: **there is no `open_shop` effect and no
+`unlock_area` effect.** Those are conditions on world objects. An NPC who changes the
+contents of the world sets a flag; the objects watch the flag. That inversion is why
+Orrel's shop and Coll's cliff cost zero lines of C#, and it is the single reason the
+Phase 2 gate is passable at all.
+
+**Content.** The full slice as JSON: 3 NPCs plus Pip, 8 quests across 8 distinct shapes,
+the puzzle chain, the mystery, 11 items, 4 recipes, 5 clues, 30 world objects.
+
+**Validator.** `ContentValidator` asserts the brief's design constraints as code —
+quest-shape spread, the three capability kinds, exactly one undocumented solution — next
+to ordinary reference integrity. It runs before every iOS build, so a content typo fails
+the build rather than reaching a tester.
+
+**Bug found by the playthrough test, worth recording because it is a class not an
+instance:** a mystery dialogue entry sat above an unoffered quest in two NPCs' entry
+lists. A player who found the scorched bark before meeting Vesk or Coll would get the
+middle of the mystery thread as that character's first-ever line, and never be offered
+their quest. Found by the scripted playthrough, not by reading the file. Fixed by
+ordering, with `_note` markers at both sites and a rule written into
+`docs/systems-README.md` §3.
+
+**22 tests pass** (`dotnet test tools/HiddenValley.Tests`), including a full scripted
+playthrough proving the dependency graph closes with no soft-lock, the undocumented
+drowned-lens route, save/reload at correct step, and stale-content tolerance on load.
+
+Passes run this entry:
+
+- **Device pass — NOT RUN.** Impossible here (B1). No frame times, no memory figures, no
+  device log. Nothing in this entry may be read as a performance claim.
+- **Play-feel pass — NOT RUN.** Requires playing. There are no timings, and the
+  interest-density walk has not happened because there is no layout to walk.
+- **Derivativeness pass — RUN.** See next entry.
+
+### 2026-08-07 — Unity adapter layer
+
+`Assets/HiddenValley/Runtime/Unity` and `Assets/HiddenValley/Editor`: content bootstrap
+with atomic saves, world-object binder, interaction controller, NPC schedule binder, Pip's
+light, the frame-time HUD required by the Phase 0 done-state, and a one-line iOS build
+command. `Packages/manifest.json`, three assembly definitions, `tools/build-ios.sh`.
+
+**None of this has been compiled.** See B1. Package versions in the manifest are
+best-effort for Unity 6 and will be reconciled by the editor on first open.
+
+### 2026-08-07 — Derivativeness pass 01
+
+Recorded in full at `docs/passes/derivativeness-01.md`.
+
+Changed: **Brann → Coll** (one letter from Bran Stark); **"investigation board" → "the
+account"**, with a binding art constraint against the corkboard-and-red-string visual;
+Pip's moth-not-fairy silhouette and dimming-not-highlighting mechanic recorded so they are
+not reversed by default later.
+
+Referred upward: **the title "Hidden Valley"** — now `[CONFIRM]` #8.
+
+Cleared and recorded: Heartwood, Pip, the invented names, the sluice puzzle, time-gated
+resources, the mystery's structure.
+
+**Explicitly not assessable yet:** character silhouettes and UI layout, because no art and
+no UI exist. These are the highest-risk remaining items — silhouette is where IP problems
+actually live — and the next pass is triggered by whichever lands first.
+
+---
+
+## What the next session should do
+
+In priority order, and none of it is guesswork:
+
+1. **Answer `[CONFIRM]` #5 and #8.** Art pipeline gates Phase 3 scoping; the title gates
+   everything downstream of a name.
+2. **Open the project in Unity 6 on the Mac and make it compile.** The adapter layer is
+   unverified source. Expect package-version reconciliation and some API drift.
+3. **Run `tools/build-ios.sh` and clear the Phase 0 gate** — or find out the build loop is
+   slow, which is exactly what that gate exists to surface early.
+4. **Then Phase 1, and do not skip it.** Movement that is merely acceptable caps the
+   project's ceiling, and no amount of the content in this repo compensates.
+
+Grey-box the village-plus-forest layout and walk it for interest density **before** any
+art exists. Interest density is a layout property, and re-laying-out a finished scene is
+where projects die.

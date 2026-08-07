@@ -83,7 +83,7 @@ namespace HiddenValley.Core
             Quests.Settle();
         }
 
-        /// <summary>Clues the player has found, ordered for the investigation board.</summary>
+        /// <summary>Clues the player has found, ordered for the account (the clue screen).</summary>
         public List<ClueDef> KnownClues(string thread = null)
         {
             var list = new List<ClueDef>();

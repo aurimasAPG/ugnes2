@@ -86,7 +86,7 @@
       "title": "A Lens for Reading",
       "shape": "craft-to-spec",
       "giver": "npc.vesk",
-      "summary": "Brann's setting plate is weathered past reading. Vesk knows what would fix that.",
+      "summary": "Coll's setting plate is weathered past reading. Vesk knows what would fix that.",
       "steps": [
         {
           "id": "make",
@@ -171,7 +171,7 @@
           "id": "offer_lens",
           "speaker": "npc.vesk",
           "lines": [
-            "\"Brann's been up here twice asking about that plate of his. The one at the gear housing.\"",
+            "\"Coll's been up here twice asking about that plate of his. The one at the gear housing.\"",
             "\"Cut stone, weathered flat. You'd need to bring your eye to within an inch of it, and nobody's eye works at an inch.\""
           ],
           "choices": [
@@ -180,7 +180,7 @@
               "effects": [ { "type": "start_quest", "quest": "quest.lens" } ],
               "goto": "lens_detail"
             },
-            { "text": "Sounds like Brann's problem." }
+            { "text": "Sounds like Coll's problem." }
           ]
         },
         {
@@ -188,7 +188,7 @@
           "speaker": "npc.vesk",
           "lines": [
             "\"A reading lens. Blank first, then grind it down. Flat on the rim so it sits on the stone without rocking.\"",
-            "\"It's not difficult. It's just fussy, and Brann's hands shake now.\""
+            "\"It's not difficult. It's just fussy, and Coll's hands shake now.\""
           ]
         },
         {
