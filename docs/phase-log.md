@@ -275,6 +275,40 @@ Derivativeness exposure: "one context button" and a floating joystick are genre
 furniture; the account/bag naming follows the world bible. Next derivativeness pass
 triggers when art or real UI styling lands, per pass 01.
 
+### 2026-08-07 — First compile, both scenes generated, build pipeline proven to the signing wall
+
+Actor: Claude Code (`claude-fable-5`), Mac session, after the owner signed into Unity Hub.
+
+**The Unity layer compiles.** 26 C# files authored blind across two environments
+produced exactly one compile error — `BuildFailedException` needed
+`using UnityEditor.Build;` in `BuildCommand.cs`. Fixed. Zero errors after.
+
+**Headless setup ran end to end.** URP configured, iOS player settings applied,
+`Greybox.unity` and `Heartwood.unity` both generated with NavMesh baked, meta files
+and ProjectSettings committed from Unity 6000.0.81f1.
+
+**`tools/build-ios.sh` measured, twice:**
+
+- Unity → Xcode project: **53 s cold, 36 s incremental**, content validator passed,
+  0 errors, both runs.
+- Xcode stage first failed on a missing iOS platform SDK (fresh Xcode 26.6);
+  installed via `xcodebuild -downloadPlatform iOS`, no GUI needed.
+- Xcode stage now proceeds to: `"Unity-iPhone" requires a provisioning profile` —
+  the exact expected wall. **Zero signing identities on this Mac.**
+
+**Gate arithmetic so far:** the Unity stage spends ~40 s of the 600 s budget. The
+gate is not cleared — it requires the app to reach the physical device — but the
+budget is in no visible danger.
+
+**Remaining before the Phase 0 gate can be attempted, both user-only:**
+1. Apple ID in Xcode (Settings → Accounts) — the free personal team is enough for
+   on-device development builds.
+2. iPhone plugged in and trusted. Then `TEAM_ID=<team> tools/build-ios.sh`
+   (`brew install ios-deploy` for the install step).
+
+Passes run this entry: **none** — still no app on a device. Timings above are build
+telemetry, not a device pass.
+
 ---
 
 ## What the next session should do
