@@ -21,7 +21,14 @@ namespace HiddenValley.Editor
     /// </summary>
     public static class BuildCommand
     {
-        private const string OutputDir = "Builds/iOS";
+        /// <summary>
+        /// Overridable because the repo may live under an iCloud-synced path (it does, on
+        /// the owner's Mac): the file provider re-tags outputs with Finder metadata faster
+        /// than it can be stripped, and codesign refuses tagged files. tools/build-ios.sh
+        /// points this at a cache directory iCloud never touches.
+        /// </summary>
+        private static string OutputDir =>
+            Environment.GetEnvironmentVariable("HV_BUILD_DIR") ?? "Builds/iOS";
 
         [MenuItem("Hidden Valley/Build iOS")]
         public static void iOS()

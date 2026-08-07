@@ -11,7 +11,7 @@ session entry.
 
 | Phase | Gate | State |
 |---|---|---|
-| 0 — Foundation spike | Build reaches device in <10 min from one command? | 🟨 In progress — toolchain installing on the Mac; needs license + device (B1) |
+| 0 — Foundation spike | Build reaches device in <10 min from one command? | ✅ **CLEARED 2026-08-07** — 238 s cold, one command, installed on the target iPhone |
 | 1 — Traversal feel | Camera never clips, never loses player, over 5 min adversarial? | ⬜ Not started |
 | 2 — Systems skeleton | Was the C# diff genuinely empty? | 🟨 **Data-driven half demonstrated.** Gate not cleared — see below |
 | 3 — Content + first art | Interest-density walk passes, no 40s dead stretch? | ⬜ Not started — no layout, no art |
@@ -308,6 +308,39 @@ budget is in no visible danger.
 
 Passes run this entry: **none** — still no app on a device. Timings above are build
 telemetry, not a device pass.
+
+### 2026-08-07 — PHASE 0 GATE CLEARED
+
+Actor: Claude Code (`claude-fable-5`) driving; owner performing the device-side steps.
+
+**`tools/build-ios.sh` → `PHASE 0 GATE: PASS (under 10 minutes)` — total 238 s, cold**,
+from one command, ending with the signed app installed on the physical target device
+(iPhone 16 Pro, iOS 26.6 — above the iPhone 13 floor from `[CONFIRM]` #3).
+
+The five failures between "code compiles" and "app on phone", each fixed in the build
+system so they never recur:
+
+1. **Missing iOS platform SDK** in fresh Xcode → `xcodebuild -downloadPlatform iOS`.
+2. **Manual signing in the generated project** → Unity now sets
+   `appleEnableAutomaticSigning` + team id in `ProjectSetup.ConfigurePlayerSettings`.
+3. **Device not registered with the team** → build targets the concrete device
+   (`platform=iOS,id=$DEVICE`) so `-allowProvisioningDeviceRegistration` works.
+4. **Developer Mode off** (two-step toggle, easy to half-complete) → verified against
+   the device itself via `devicectl` before building.
+5. **iCloud Drive corrupting signatures** — the repo lives in synced `~/Documents`;
+   the file provider re-tags outputs with Finder metadata and codesign refuses them
+   ("detritus not allowed"). **Builds now go to `~/Library/Caches/HiddenValleyBuild`**,
+   outside any synced tree, via `HV_BUILD_DIR`. Flagged for later: the repo itself
+   (especially Unity's `Library/`) still syncs to iCloud pointlessly.
+
+Owner-side one-time setup completed this session: Unity license, Apple ID in Xcode
+(personal team `32U8KR34UT`, extracted from the certificate), device trust, Developer
+Mode.
+
+**What this gate does NOT claim:** the app has not yet been launched and played on the
+device. The Phase 0 done-state (grey-box scene running with joystick, follow camera,
+frame-time readout) is verified the moment the owner opens the app; the ten-minute
+device pass is still to run. The installed build boots the Heartwood slice scene.
 
 ---
 

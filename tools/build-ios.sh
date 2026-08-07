@@ -35,6 +35,16 @@ fi
 echo "Unity: $UNITY_BIN"
 echo
 
+# Build OUTSIDE the repo. The repo lives under an iCloud-synced path on the owner's
+# Mac, and the file provider re-tags outputs with Finder metadata faster than it can
+# be stripped — codesign then rejects them ("resource fork ... detritus not allowed").
+# ~/Library/Caches is never synced.
+BUILD_ROOT="${HV_BUILD_ROOT:-$HOME/Library/Caches/HiddenValleyBuild}"
+export HV_BUILD_DIR="$BUILD_ROOT/iOS"
+mkdir -p "$BUILD_ROOT"
+echo "Build root: $BUILD_ROOT"
+echo
+
 echo "== 1/3  Unity -> Xcode project =="
 "$UNITY_BIN" \
   -quit -batchmode -nographics \
@@ -44,19 +54,29 @@ echo "== 1/3  Unity -> Xcode project =="
 
 echo
 echo "== 2/3  Xcode -> .app =="
+
+# Belt and braces for anything that was tagged before the move out of the repo.
+xattr -rc "$BUILD_ROOT" 2>/dev/null || true
+
+# A concrete device destination lets -allowProvisioningDeviceRegistration register
+# the phone with the team; the generic destination cannot.
+DEST="generic/platform=iOS"
+[ -n "${DEVICE:-}" ] && DEST="platform=iOS,id=$DEVICE"
+
 xcodebuild \
-  -project Builds/iOS/Unity-iPhone.xcodeproj \
+  -project "$HV_BUILD_DIR/Unity-iPhone.xcodeproj" \
   -scheme Unity-iPhone \
   -configuration Release \
-  -destination 'generic/platform=iOS' \
-  -derivedDataPath Builds/DerivedData \
+  -destination "$DEST" \
+  -derivedDataPath "$BUILD_ROOT/DerivedData" \
   ${TEAM_ID:+DEVELOPMENT_TEAM="$TEAM_ID"} \
   -allowProvisioningUpdates \
+  -allowProvisioningDeviceRegistration \
   build | tail -20
 
 echo
 echo "== 3/3  install =="
-APP="$(find Builds/DerivedData/Build/Products -maxdepth 2 -name '*.app' | head -1)"
+APP="$(find "$BUILD_ROOT/DerivedData/Build/Products" -maxdepth 2 -name '*.app' | head -1)"
 if [ -z "$APP" ]; then
   echo "No .app produced." >&2
   exit 1

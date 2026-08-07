@@ -102,6 +102,12 @@ namespace HiddenValley.Editor
             PlayerSettings.iOS.targetOSVersionString = "16.0";
             PlayerSettings.iOS.targetDevice = iOSTargetDevice.iPhoneAndiPad;
 
+            // Automatic signing, so the generated Xcode project provisions itself with
+            // -allowProvisioningUpdates. The team id is the owner's personal team,
+            // extracted from the development certificate on 2026-08-07.
+            PlayerSettings.iOS.appleEnableAutomaticSigning = true;
+            PlayerSettings.iOS.appleDeveloperTeamID = "32U8KR34UT";
+
             // Landscape-only. A follow-camera exploration game framed for portrait is a
             // different layout job; if that decision changes it changes here, once.
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
