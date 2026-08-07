@@ -31,6 +31,18 @@ namespace HiddenValley.Tests
         public static string ContentPath => Path.Combine(RepoRoot, "Assets", "StreamingAssets", "Content");
 
         /// <summary>
+        /// A fresh database of the shipped content plus one extra authored file. Fresh, not
+        /// shared, so an overlay cannot leak into other tests.
+        /// </summary>
+        public static ContentDatabase WithOverlay(string relativeJsonPath)
+        {
+            var db = ContentDatabase.LoadFromDirectory(ContentPath);
+            db.MergeJson(File.ReadAllText(Path.Combine(RepoRoot, relativeJsonPath)));
+            db.Index();
+            return db;
+        }
+
+        /// <summary>
         /// Talks to an NPC and picks the first available choice whose text starts with the
         /// given prefix. Throws with the available options listed, so a content edit that
         /// removes a line fails loudly rather than silently skipping a step.
