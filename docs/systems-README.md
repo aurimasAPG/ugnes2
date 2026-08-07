@@ -279,3 +279,45 @@ reaching a tester.
 - **No per-content C# types.** There is no `VeskController`. If you find yourself writing
   one, the architecture has failed and kill criterion 2 applies.
 - **No inheritance hierarchy for quests or NPCs.** A new NPC is a row of data.
+
+---
+
+## 10. Placing things: the layout file
+
+Content JSON decides **what** exists; `Assets/HiddenValley/Layout/heartwood.json`
+decides **where**. The scene file is never authored by hand — it is generated:
+
+    Unity -quit -batchmode -projectPath . -executeMethod HiddenValley.Editor.VillageSetup.GenerateHeartwood
+
+The layout file has four lists:
+
+- `blocks` — dumb geometry: name, shape (`cube`/`cylinder`/`sphere`), `pos`, `size`,
+  optional `rot`, and a `mat` from the fixed grey-box palette (`grey`, `dark`, `sand`,
+  `moss`, `bark`, `water`).
+- `worldObjects` — one entry per content world-object id. Same geometry fields, plus
+  `blocking: true` to wire the collider the binder toggles (barriers, gates), and
+  `solid: false` for pickups you walk through. Every entry gets a `WorldObjectBinder`
+  and an interaction zone automatically.
+- `npcs` — spawn position and a `waypoints` map from schedule waypoint ids to
+  positions. Every entry gets a `NavMeshAgent` and an `NpcBinder`, fully wired.
+- `player` / `pip` — spawn points.
+
+The generator bakes the NavMesh last, then registers the scene in Build Settings.
+**Moving a landmark to fix a dead stretch found by the interest-density walk is a JSON
+edit and a re-run.** Adding NPC #4's home, waypoints and quest objects is the same —
+still zero C#.
+
+Rule of thumb baked into the current layout: walk speed is 4.5 m/s, the 40-second rule
+is therefore 180 m, and no leg is longer than ~30 m without something to look at or
+touch. Keep it that way.
+
+## 11. The HUD
+
+`GameHud` (IMGUI, like the rest of the debug layer — no canvas, no prefabs, survives
+scene regeneration) draws: the clock, the quest tracker, the interaction prompt,
+dialogue with choices, the bag, the account, and readable text.
+
+Input is **one context button** (`TouchControls.ContextAction`): a right-half tap
+talks to the NPC in front of you, else interacts with what is in front of you, else
+advances dialogue, else jumps. Dialogue and panels lock movement, so aimed taps
+(choices, toggles) are single-touch. Phase 4 replaces the skin, not this wiring.

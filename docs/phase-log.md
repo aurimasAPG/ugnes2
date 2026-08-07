@@ -238,6 +238,43 @@ Passes run this entry: **none.** No device, no build. The derivativeness exposur
 this entry is low (grey-box geometry, a floating joystick and tap-to-jump are genre
 furniture, not property signatures) but it is recorded as *not run*, not as passed.
 
+### 2026-08-07 — Play HUD and the data-driven layout
+
+Actor: Claude Code (`claude-fable-5`), Mac session, while the editor downloads.
+
+**Two gaps closed, both required before Phase 3 can even be attempted:**
+
+1. **`GameHud`** — the slice was a black box: the engine could run a quest but the
+   player had no way to see dialogue, the tracker, the bag, the account, or a readable.
+   IMGUI like the rest of the debug layer, so grey-box builds need no canvas, no
+   prefabs, no font assets. Input is one context button routed through
+   `TouchControls.ContextAction`: tap = talk / interact / advance dialogue / jump, in
+   that priority. Dialogue and panels lock movement. Phase 4 restyles this; it does
+   not rewire it.
+
+2. **`Assets/HiddenValley/Layout/heartwood.json` + `VillageSetup`** — the project's
+   data-driven property applied to space. The layout JSON places every world-object
+   id (all 32), every NPC spawn and schedule waypoint, player and Pip; the generator
+   builds the grey-box village + climb + Ash Shelf + lower shelf, wires every binder
+   and interaction zone, bakes the NavMesh, and registers the scene. The scene file
+   is never hand-authored. Re-cutting the layout after a failed interest-density walk
+   is a JSON edit and a re-run — re-laying-out a finished scene is where projects
+   die, and this is the mechanism that makes re-laying-out cheap.
+
+   Layout arithmetic on record: walk speed 4.5 m/s → the 40-second rule is 180 m; the
+   longest leg in the authored layout is ~30 m (the climb's second ramp), with a
+   landmark tree and a resin pickup on the landing. **This is arithmetic, not the
+   gate** — the gate is walked with a stopwatch on device, and stays unclear.
+
+   Also fixed before first compile: `HiddenValley.Editor.asmdef` was missing the URP
+   and AI-navigation references its code uses — caught by review, would have been the
+   first compile error.
+
+Passes run this entry: **none** (no device, no build — B1's remaining user steps).
+Derivativeness exposure: "one context button" and a floating joystick are genre
+furniture; the account/bag naming follows the world bible. Next derivativeness pass
+triggers when art or real UI styling lands, per pass 01.
+
 ---
 
 ## What the next session should do

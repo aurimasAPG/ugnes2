@@ -27,6 +27,20 @@ namespace HiddenValley.Unity
         /// <summary>True while a right-half touch has been held past the sprint threshold.</summary>
         public bool Sprint { get; private set; }
 
+        /// <summary>
+        /// While true (dialogue, bag, the account), the stick reads zero and taps neither
+        /// jump nor sprint — but <see cref="ContextAction"/> still fires, because a tap
+        /// during dialogue means "next line", not "jump behind the UI".
+        /// </summary>
+        public bool Locked { get; set; }
+
+        /// <summary>
+        /// One thumb, one button: a right-half tap offers itself here first — talk,
+        /// interact, advance dialogue — and only becomes a jump if nothing claims it.
+        /// Wired by GameHud; null (the grey-box scene) means taps just jump.
+        /// </summary>
+        public System.Func<bool> ContextAction { get; set; }
+
         private bool _jumpQueued;
 
         private int _stickFinger = -1;
@@ -50,6 +64,18 @@ namespace HiddenValley.Unity
 #if UNITY_EDITOR || UNITY_STANDALONE
             ReadDesktopFallback();
 #endif
+            if (Locked)
+            {
+                Move = Vector2.zero;
+                Sprint = false;
+                _jumpQueued = false;
+            }
+        }
+
+        private void Tap()
+        {
+            if (ContextAction != null && ContextAction()) return;
+            if (!Locked) _jumpQueued = true;
         }
 
         private void ReadTouches()
@@ -83,7 +109,7 @@ namespace HiddenValley.Unity
                     {
                         // Short and stationary is a tap; anything else was a hold or a swipe.
                         bool moved = (touch.position - _rightStart).magnitude > radius * 0.5f;
-                        if (_rightHeld < tapMaxSeconds && !moved) _jumpQueued = true;
+                        if (_rightHeld < tapMaxSeconds && !moved) Tap();
                         Sprint = false;
                     }
                     continue;
@@ -125,7 +151,7 @@ namespace HiddenValley.Unity
         {
             var keys = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             if (keys.sqrMagnitude > 0.01f) Move = Vector2.ClampMagnitude(keys, 1f);
-            if (Input.GetKeyDown(KeyCode.Space)) _jumpQueued = true;
+            if (Input.GetKeyDown(KeyCode.Space)) Tap();
             if (Input.GetKey(KeyCode.LeftShift)) Sprint = true;
         }
 #endif

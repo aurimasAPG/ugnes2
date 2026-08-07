@@ -1,7 +1,12 @@
 {
     "name": "HiddenValley.Editor",
     "rootNamespace": "HiddenValley.Editor",
-    "references": [ "HiddenValley.Core", "HiddenValley.Unity" ],
+    "references": [
+        "HiddenValley.Core",
+        "HiddenValley.Unity",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "Unity.AI.Navigation"
+    ],
     "includePlatforms": [ "Editor" ],
     "excludePlatforms": [],
     "autoReferenced": true

@@ -39,6 +39,7 @@ namespace HiddenValley.Editor
             ConfigureRenderPipeline();
             ConfigurePlayerSettings();
             GenerateGreyboxScene();
+            VillageSetup.GenerateHeartwood(); // runs last — it owns the build-scene list
             AssetDatabase.SaveAssets();
             Debug.Log("[HiddenValley] Project setup complete.");
         }
@@ -161,8 +162,9 @@ namespace HiddenValley.Editor
             light.shadows = LightShadows.Soft;
             lightGo.transform.rotation = Quaternion.Euler(48f, -35f, 0);
 
-            // Player: CharacterController capsule with the visual as a child.
-            var player = new GameObject("Player") { tag = "Player" };
+            // Player: CharacterController capsule with the visual as a child. Layer 2
+            // (Ignore Raycast) keeps the follow camera's occlusion cast off the player.
+            var player = new GameObject("Player") { tag = "Player", layer = 2 };
             player.transform.position = new Vector3(0, 1.0f, 0);
             var cc = player.AddComponent<CharacterController>();
             cc.height = 1.8f;
@@ -203,6 +205,7 @@ namespace HiddenValley.Editor
             cameraGo.AddComponent<AudioListener>();
             var follow = cameraGo.AddComponent<FollowCamera>();
             Bind(follow, "target", player.transform);
+            BindInt(follow, "collisionMask", ~(1 << 2));
 
             var pc = player.AddComponent<PlayerController>();
             Bind(pc, "controls", controls);
@@ -219,8 +222,8 @@ namespace HiddenValley.Editor
 
         // ---- helpers ----------------------------------------------------------
 
-        private static GameObject Block(string name, UnityEngine.Material material,
-                                        Vector3 position, Vector3 scale)
+        internal static GameObject Block(string name, UnityEngine.Material material,
+                                         Vector3 position, Vector3 scale)
         {
             var block = GameObject.CreatePrimitive(PrimitiveType.Cube);
             block.name = name;
@@ -230,7 +233,7 @@ namespace HiddenValley.Editor
             return block;
         }
 
-        private static UnityEngine.Material Material(string path, Color color)
+        internal static UnityEngine.Material Material(string path, Color color)
         {
             var material = AssetDatabase.LoadAssetAtPath<UnityEngine.Material>(path);
             if (material == null)
@@ -244,10 +247,17 @@ namespace HiddenValley.Editor
 
         /// <summary>Serialized fields on the runtime components are private by design;
         /// the editor wires them the same way the inspector would.</summary>
-        private static void Bind(Component component, string field, Object value)
+        internal static void Bind(Component component, string field, Object value)
         {
             var serialized = new SerializedObject(component);
             serialized.FindProperty(field).objectReferenceValue = value;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        internal static void BindInt(Component component, string field, int value)
+        {
+            var serialized = new SerializedObject(component);
+            serialized.FindProperty(field).intValue = value;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
     }
