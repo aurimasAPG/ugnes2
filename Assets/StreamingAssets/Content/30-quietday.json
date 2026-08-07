@@ -1,0 +1,153 @@
+{
+  "npcs": [
+    {
+      "id": "npc.pip",
+      "name": "Pip",
+      "region": "heartwood",
+      "capability_kind": "none",
+      "schedule": [
+        { "from": "dawn", "to": "night", "waypoint": "wp.follow_player" }
+      ],
+      "dialogue_entries": [
+        {
+          "dialogue": "dlg.pip",
+          "node": "after",
+          "when": { "type": "flag", "key": "mystery.resolved", "value": "true" }
+        },
+        {
+          "dialogue": "dlg.pip",
+          "node": "dimming",
+          "when": {
+            "type": "all",
+            "of": [
+              { "type": "quest_state", "quest": "quest.quietday", "state": "active" },
+              { "type": "not", "of": { "type": "clue_known", "clue": "clue.tended" } }
+            ]
+          }
+        },
+        { "dialogue": "dlg.pip", "node": "idle" }
+      ]
+    }
+  ],
+
+  "quests": [
+    {
+      "id": "quest.quietday",
+      "title": "Quietday",
+      "shape": "investigate",
+      "summary": "Some mornings the valley wakes with no birdsong and grey on the eastern leaves. Nobody else thinks this is a question.",
+      "start_when": { "type": "clue_known", "clue": "clue.scorched_bark" },
+      "steps": [
+        {
+          "id": "ash",
+          "tracker": "Ask someone in Heartwood what the grey on the leaves actually is.",
+          "completion": [
+            { "id": "identified", "when": { "type": "clue_known", "clue": "clue.kiln_ash" } }
+          ]
+        },
+        {
+          "id": "warm",
+          "tracker": "If Vesk's kiln was cold, something else was firing. Find out what else runs hot here.",
+          "completion": [
+            { "id": "warm_water", "when": { "type": "clue_known", "clue": "clue.warm_channel" } }
+          ]
+        },
+        {
+          "id": "find",
+          "tracker": "The water comes up warm at the head gate. Get under the shelf and find out why.",
+          "completion": [
+            { "id": "found", "when": { "type": "clue_known", "clue": "clue.second_kiln" } }
+          ]
+        },
+        {
+          "id": "tend",
+          "tracker": "Look at how the second kiln is being kept, not just that it is lit.",
+          "completion": [
+            { "id": "tended", "when": { "type": "clue_known", "clue": "clue.tended" } }
+          ]
+        },
+        {
+          "id": "ask",
+          "tracker": "Somebody cuts that fuel to length. Ask Brann.",
+          "completion": []
+        }
+      ],
+      "on_complete": [
+        { "type": "set_flag", "key": "mystery.resolved", "value": "true" }
+      ]
+    }
+  ],
+
+  "world": [
+    {
+      "id": "world.scorched_bark",
+      "kind": "clue_object",
+      "region": "ash_shelf",
+      "interact_label": "Look at the marked trunks",
+      "text": "Heat damage, halfway up, on the eastern side of every trunk in this stand. The ground beneath is untouched — no char, no ring, not even old ash worked into the soil. Whatever cooked these trees did not stand on the ground to do it.",
+      "interact_when": { "type": "not", "of": { "type": "flag", "key": "bark.read", "value": "true" } },
+      "on_interact": [
+        { "type": "learn_clue", "clue": "clue.scorched_bark" },
+        { "type": "set_flag", "key": "bark.read", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.second_kiln",
+      "kind": "clue_object",
+      "region": "ash_shelf_lower",
+      "interact_label": "Look into the cut",
+      "text": "Where the pool sat, the stone opens. Back in the cut, past where the water stood, there is a kiln mouth — squat, brick-lined, and warm enough to feel from here. It is not on any map anyone in Heartwood has ever shown you.",
+      "visible_when": { "type": "flag", "key": "pool.drained", "value": "true" },
+      "interact_when": { "type": "not", "of": { "type": "flag", "key": "kiln.seen", "value": "true" } },
+      "on_interact": [
+        { "type": "learn_clue", "clue": "clue.second_kiln" },
+        { "type": "set_flag", "key": "kiln.seen", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.kiln_hearth",
+      "kind": "clue_object",
+      "region": "ash_shelf_lower",
+      "interact_label": "Look at the fire",
+      "text": "The fire is banked, not dying — laid over with ash the way you cover a fire you intend to come back to. There is a stack of fuel against the wall, split to a uniform length, kept dry. The floor has been swept. Recently.",
+      "visible_when": { "type": "flag", "key": "kiln.seen", "value": "true" },
+      "interact_when": { "type": "not", "of": { "type": "flag", "key": "hearth.seen", "value": "true" } },
+      "on_interact": [
+        { "type": "learn_clue", "clue": "clue.tended" },
+        { "type": "give_item", "item": "item.cut_fuel", "count": 1 },
+        { "type": "set_flag", "key": "hearth.seen", "value": "true" }
+      ]
+    }
+  ],
+
+  "dialogue": [
+    {
+      "id": "dlg.pip",
+      "nodes": [
+        {
+          "id": "idle",
+          "speaker": "npc.pip",
+          "lines": [
+            "Pip settles on your shoulder, folds down, and holds a steady light."
+          ]
+        },
+        {
+          "id": "dimming",
+          "speaker": "npc.pip",
+          "lines": [
+            "Pip will not settle. The light goes thin, comes back, goes thin again.",
+            "It is doing something. It is not telling you what."
+          ]
+        },
+        {
+          "id": "after",
+          "speaker": "npc.pip",
+          "lines": [
+            "Pip is bright again, and steady, and entirely unbothered.",
+            "Whatever was wrong with the light down there, it does not appear to be wrong up here."
+          ]
+        }
+      ]
+    }
+  ]
+}

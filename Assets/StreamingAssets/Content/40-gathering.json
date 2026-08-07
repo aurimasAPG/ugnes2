@@ -1,0 +1,109 @@
+{
+  "world": [
+    {
+      "id": "world.sand_1",
+      "kind": "pickup",
+      "region": "heartwood",
+      "interact_label": "Scoop white sand",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "sand.1.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.white_sand", "count": 1 },
+        { "type": "set_flag", "key": "sand.1.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.sand_2",
+      "kind": "pickup",
+      "region": "heartwood",
+      "interact_label": "Scoop white sand",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "sand.2.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.white_sand", "count": 1 },
+        { "type": "set_flag", "key": "sand.2.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.sand_3",
+      "kind": "pickup",
+      "region": "heartwood",
+      "interact_label": "Scoop white sand",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "sand.3.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.white_sand", "count": 1 },
+        { "type": "set_flag", "key": "sand.3.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.sand_4",
+      "kind": "pickup",
+      "region": "ash_shelf",
+      "interact_label": "Scoop white sand",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "sand.4.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.white_sand", "count": 3 },
+        { "type": "set_flag", "key": "sand.4.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.sand_5",
+      "kind": "pickup",
+      "region": "ash_shelf",
+      "interact_label": "Scoop white sand",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "sand.5.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.white_sand", "count": 2 },
+        { "type": "set_flag", "key": "sand.5.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.resin_1",
+      "kind": "pickup",
+      "region": "ash_shelf",
+      "interact_label": "Collect resin",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "resin.1.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.resin", "count": 1 },
+        { "type": "set_flag", "key": "resin.1.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.resin_2",
+      "kind": "pickup",
+      "region": "ash_shelf",
+      "interact_label": "Collect resin",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "resin.2.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.resin", "count": 1 },
+        { "type": "set_flag", "key": "resin.2.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.kiln_station",
+      "kind": "craft_station",
+      "region": "heartwood",
+      "interact_label": "Use the kiln",
+      "interact_when": { "type": "flag", "key": "vesk.taught", "value": "true" },
+      "on_interact": [
+        { "type": "set_flag", "key": "ui.open_crafting", "value": "kiln" }
+      ]
+    },
+    {
+      "id": "world.bed",
+      "kind": "rest_point",
+      "region": "heartwood",
+      "interact_label": "Sleep until dawn",
+      "on_interact": [
+        { "type": "set_time", "phase": "dawn" }
+      ]
+    },
+    {
+      "id": "world.bench_dusk",
+      "kind": "rest_point",
+      "region": "heartwood",
+      "interact_label": "Wait until dusk",
+      "on_interact": [
+        { "type": "set_time", "phase": "dusk" }
+      ]
+    }
+  ]
+}

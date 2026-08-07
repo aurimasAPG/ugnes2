@@ -1,0 +1,415 @@
+{
+  "npcs": [
+    {
+      "id": "npc.orrel",
+      "name": "Orrel",
+      "region": "heartwood",
+      "capability_kind": "world_contents",
+      "schedule": [
+        { "from": "dawn", "to": "dusk", "waypoint": "wp.ledger_house" },
+        { "from": "night", "to": "night", "waypoint": "wp.ledger_upstairs" }
+      ],
+      "dialogue_entries": [
+        {
+          "dialogue": "dlg.orrel",
+          "node": "take_counts",
+          "when": { "type": "quest_step", "quest": "quest.countings", "step": "report", "compare": "at" }
+        },
+        {
+          "dialogue": "dlg.orrel",
+          "node": "offer_countings",
+          "when": { "type": "quest_state", "quest": "quest.countings", "state": "notstarted" }
+        },
+        {
+          "dialogue": "dlg.orrel",
+          "node": "take_ledger",
+          "when": { "type": "quest_step", "quest": "quest.ledger", "step": "report", "compare": "at" }
+        },
+        {
+          "dialogue": "dlg.orrel",
+          "node": "offer_ledger",
+          "when": {
+            "type": "all",
+            "of": [
+              { "type": "quest_state", "quest": "quest.countings", "state": "completed" },
+              { "type": "quest_state", "quest": "quest.ledger", "state": "notstarted" }
+            ]
+          }
+        },
+        {
+          "dialogue": "dlg.orrel",
+          "node": "cart_talk",
+          "when": { "type": "quest_state", "quest": "quest.cart", "state": "active" }
+        },
+        { "dialogue": "dlg.orrel", "node": "idle" }
+      ]
+    }
+  ],
+
+  "quests": [
+    {
+      "id": "quest.countings",
+      "title": "Countings",
+      "shape": "observe-and-report",
+      "giver": "npc.orrel",
+      "summary": "Orrel wants a number, twice, at the right hours. She will not say what for until she has it.",
+      "steps": [
+        {
+          "id": "dawn_count",
+          "tracker": "Count the open sunmoss on the shaded bank at dawn.",
+          "completion": [
+            { "id": "counted_dawn", "when": { "type": "flag", "key": "count.dawn", "value": "true" } }
+          ]
+        },
+        {
+          "id": "dusk_count",
+          "tracker": "Count them again at dusk. The number is the point, not the moss.",
+          "completion": [
+            { "id": "counted_dusk", "when": { "type": "flag", "key": "count.dusk", "value": "true" } }
+          ]
+        },
+        {
+          "id": "report",
+          "tracker": "Take both counts to Orrel at the ledger house.",
+          "completion": []
+        }
+      ],
+      "on_complete": [
+        { "type": "set_flag", "key": "orrel.tradepost", "value": "true" }
+      ]
+    },
+
+    {
+      "id": "quest.ledger",
+      "title": "The Long Ledger",
+      "shape": "trade",
+      "giver": "npc.orrel",
+      "summary": "A trade post is only a claim until something has actually changed hands across it.",
+      "steps": [
+        {
+          "id": "trade",
+          "tracker": "Trade sunmoss at the Trade Post until you hold three ledger slips.",
+          "completion": [
+            { "id": "traded", "when": { "type": "has_item", "item": "item.ledger_slip", "count": 3 } }
+          ]
+        },
+        {
+          "id": "report",
+          "tracker": "Bring the three slips back to Orrel.",
+          "completion": []
+        }
+      ],
+      "on_complete": [
+        { "type": "take_item", "item": "item.ledger_slip", "count": 3 },
+        { "type": "set_flag", "key": "orrel.ledger_done", "value": "true" }
+      ]
+    },
+
+    {
+      "id": "quest.cart",
+      "title": "Cart to the Shelf",
+      "shape": "escort",
+      "giver": "npc.orrel",
+      "summary": "The lower shelf is open, which means for the first time in Orrel's life it is somewhere goods can go.",
+      "start_when": {
+        "type": "all",
+        "of": [
+          { "type": "quest_state", "quest": "quest.ledger", "state": "completed" },
+          { "type": "flag", "key": "shelf.lower.open", "value": "true" }
+        ]
+      },
+      "steps": [
+        {
+          "id": "start",
+          "tracker": "Take the handcart's other handle outside the ledger house.",
+          "completion": [
+            { "id": "started", "when": { "type": "flag", "key": "cart.started", "value": "true" } }
+          ]
+        },
+        {
+          "id": "arrive",
+          "tracker": "Walk the cart down to the lower shelf without letting it get away from you.",
+          "completion": [
+            { "id": "arrived", "when": { "type": "flag", "key": "cart.arrived", "value": "true" } }
+          ]
+        }
+      ],
+      "on_complete": [
+        { "type": "set_flag", "key": "orrel.cart_done", "value": "true" },
+        { "type": "give_item", "item": "item.ledger_slip", "count": 1 }
+      ]
+    }
+  ],
+
+  "world": [
+    {
+      "id": "world.moss_patch_dawn",
+      "kind": "observation_point",
+      "region": "ash_shelf",
+      "interact_label": "Count the open moss",
+      "interact_when": {
+        "type": "all",
+        "of": [
+          { "type": "quest_state", "quest": "quest.countings", "state": "active" },
+          { "type": "time_of_day", "phases": ["dawn"] },
+          { "type": "not", "of": { "type": "flag", "key": "count.dawn", "value": "true" } }
+        ]
+      },
+      "on_interact": [
+        { "type": "set_flag", "key": "count.dawn", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.moss_patch_dusk",
+      "kind": "observation_point",
+      "region": "ash_shelf",
+      "interact_label": "Count the open moss",
+      "interact_when": {
+        "type": "all",
+        "of": [
+          { "type": "quest_state", "quest": "quest.countings", "state": "active" },
+          { "type": "time_of_day", "phases": ["dusk"] },
+          { "type": "flag", "key": "count.dawn", "value": "true" },
+          { "type": "not", "of": { "type": "flag", "key": "count.dusk", "value": "true" } }
+        ]
+      },
+      "on_interact": [
+        { "type": "set_flag", "key": "count.dusk", "value": "true" }
+      ]
+    },
+
+    {
+      "id": "world.trade_post",
+      "kind": "shop",
+      "region": "heartwood",
+      "interact_label": "Trade two sunmoss for a slip",
+      "visible_when": { "type": "flag", "key": "orrel.tradepost", "value": "true" },
+      "interact_when": { "type": "has_item", "item": "item.sunmoss", "count": 2 },
+      "on_interact": [
+        { "type": "take_item", "item": "item.sunmoss", "count": 2 },
+        { "type": "give_item", "item": "item.ledger_slip", "count": 1 }
+      ]
+    },
+
+    {
+      "id": "world.sunmoss_1",
+      "kind": "resource_node",
+      "region": "ash_shelf",
+      "interact_label": "Harvest sunmoss",
+      "visible_when": {
+        "type": "all",
+        "of": [
+          { "type": "flag", "key": "orrel.tradepost", "value": "true" },
+          { "type": "not", "of": { "type": "flag", "key": "moss.1.taken", "value": "true" } }
+        ]
+      },
+      "on_interact": [
+        { "type": "give_item", "item": "item.sunmoss", "count": 2 },
+        { "type": "set_flag", "key": "moss.1.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.sunmoss_2",
+      "kind": "resource_node",
+      "region": "ash_shelf",
+      "interact_label": "Harvest sunmoss",
+      "visible_when": {
+        "type": "all",
+        "of": [
+          { "type": "flag", "key": "orrel.tradepost", "value": "true" },
+          { "type": "not", "of": { "type": "flag", "key": "moss.2.taken", "value": "true" } }
+        ]
+      },
+      "on_interact": [
+        { "type": "give_item", "item": "item.sunmoss", "count": 2 },
+        { "type": "set_flag", "key": "moss.2.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.sunmoss_3",
+      "kind": "resource_node",
+      "region": "heartwood",
+      "interact_label": "Harvest sunmoss",
+      "visible_when": {
+        "type": "all",
+        "of": [
+          { "type": "flag", "key": "orrel.tradepost", "value": "true" },
+          { "type": "not", "of": { "type": "flag", "key": "moss.3.taken", "value": "true" } }
+        ]
+      },
+      "on_interact": [
+        { "type": "give_item", "item": "item.sunmoss", "count": 2 },
+        { "type": "set_flag", "key": "moss.3.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.sunmoss_4",
+      "kind": "resource_node",
+      "region": "ash_shelf",
+      "interact_label": "Harvest sunmoss",
+      "visible_when": {
+        "type": "all",
+        "of": [
+          { "type": "flag", "key": "orrel.tradepost", "value": "true" },
+          { "type": "not", "of": { "type": "flag", "key": "moss.4.taken", "value": "true" } }
+        ]
+      },
+      "on_interact": [
+        { "type": "give_item", "item": "item.sunmoss", "count": 2 },
+        { "type": "set_flag", "key": "moss.4.taken", "value": "true" }
+      ]
+    },
+
+    {
+      "id": "world.handcart",
+      "kind": "cart",
+      "region": "heartwood",
+      "interact_label": "Take the other handle",
+      "visible_when": { "type": "quest_state", "quest": "quest.cart", "state": "active" },
+      "interact_when": { "type": "not", "of": { "type": "flag", "key": "cart.started", "value": "true" } },
+      "on_interact": [
+        { "type": "set_flag", "key": "cart.started", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.cart_stand",
+      "kind": "cart_destination",
+      "region": "ash_shelf",
+      "interact_label": "Set the cart down",
+      "visible_when": { "type": "flag", "key": "cart.started", "value": "true" },
+      "interact_when": { "type": "not", "of": { "type": "flag", "key": "cart.arrived", "value": "true" } },
+      "on_interact": [
+        { "type": "set_flag", "key": "cart.arrived", "value": "true" }
+      ]
+    }
+  ],
+
+  "dialogue": [
+    {
+      "id": "dlg.orrel",
+      "nodes": [
+        {
+          "id": "offer_countings",
+          "speaker": "npc.orrel",
+          "lines": [
+            "Orrel does not stop writing.",
+            "\"You walk the shelf. Good. I need a number and I need it twice.\"",
+            "\"The sunmoss on the shaded bank. How many are open at dawn, and how many at dusk.\""
+          ],
+          "choices": [
+            {
+              "text": "Why twice?",
+              "effects": [ { "type": "start_quest", "quest": "quest.countings" } ],
+              "goto": "countings_why"
+            },
+            {
+              "text": "Dawn and dusk. Fine.",
+              "effects": [ { "type": "start_quest", "quest": "quest.countings" } ],
+              "goto": "countings_detail"
+            }
+          ]
+        },
+        {
+          "id": "countings_why",
+          "speaker": "npc.orrel",
+          "lines": [
+            "\"Because one number is an opinion.\"",
+            "She finally looks up.",
+            "\"Everyone here says the moss is worthless because it grows wrong. Nobody has counted it. I would like to be the one holding the count when that stops being true.\""
+          ],
+          "goto": "countings_detail"
+        },
+        {
+          "id": "countings_detail",
+          "speaker": "npc.orrel",
+          "lines": [
+            "\"Shaded bank, off the upper shelf. Dawn first, then dusk — in that order, or the second number means nothing.\""
+          ]
+        },
+        {
+          "id": "take_counts",
+          "speaker": "npc.orrel",
+          "lines": [ "\"Well? Both of them.\"" ],
+          "choices": [
+            {
+              "text": "Both counted. Dusk was the bigger number.",
+              "effects": [ { "type": "advance_quest", "quest": "quest.countings" } ],
+              "goto": "counts_result"
+            },
+            { "text": "Not finished yet." }
+          ]
+        },
+        {
+          "id": "counts_result",
+          "speaker": "npc.orrel",
+          "lines": [
+            "She writes it down, underlines it, and sits back.",
+            "\"Four times the yield at dusk. Four. And every carter who comes through this valley collects at noon because that is when carters like to work.\"",
+            "\"Right. I'm opening a post on the west bank, and I am buying moss at dusk prices.\"",
+            "\"Tell people. Tell them I said the number.\""
+          ]
+        },
+        {
+          "id": "offer_ledger",
+          "speaker": "npc.orrel",
+          "lines": [
+            "\"The post is standing and nobody has used it, which makes it a shed.\"",
+            "\"Bring me moss across my own counter until I have three slips written. Then it is a trade post.\""
+          ],
+          "choices": [
+            {
+              "text": "Three slips.",
+              "effects": [ { "type": "start_quest", "quest": "quest.ledger" } ],
+              "goto": "ledger_detail"
+            },
+            { "text": "It's a shed." }
+          ]
+        },
+        {
+          "id": "ledger_detail",
+          "speaker": "npc.orrel",
+          "lines": [
+            "\"Two moss a slip. I am not being generous — I am establishing a rate, and the first rate is the one that sticks.\""
+          ]
+        },
+        {
+          "id": "take_ledger",
+          "speaker": "npc.orrel",
+          "lines": [ "\"Slips.\"" ],
+          "choices": [
+            {
+              "text": "Three of them.",
+              "when": { "type": "has_item", "item": "item.ledger_slip", "count": 3 },
+              "effects": [ { "type": "advance_quest", "quest": "quest.ledger" } ],
+              "goto": "ledger_done"
+            },
+            { "text": "Working on it." }
+          ]
+        },
+        {
+          "id": "ledger_done",
+          "speaker": "npc.orrel",
+          "lines": [
+            "She takes all three, files them, and writes a fourth thing that she does not show you.",
+            "\"That is a trading post with a history now. Small history. Still a history.\""
+          ]
+        },
+        {
+          "id": "cart_talk",
+          "speaker": "npc.orrel",
+          "lines": [
+            "\"It has been a wall my whole life and this morning it is a road.\"",
+            "\"Take the other handle. And keep it slow on the cut — a loaded cart on a slope stops being yours very quickly.\""
+          ]
+        },
+        {
+          "id": "idle",
+          "speaker": "npc.orrel",
+          "lines": [
+            "\"I am three columns from a total. Come back when I am four.\""
+          ]
+        }
+      ]
+    }
+  ]
+}

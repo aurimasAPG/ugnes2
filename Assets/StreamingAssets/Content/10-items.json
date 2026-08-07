@@ -1,0 +1,136 @@
+{
+  "items": [
+    {
+      "id": "item.white_sand",
+      "name": "white sand",
+      "description": "Pale, sharp-grained, gathered off the channel bank where the water sorts it for you."
+    },
+    {
+      "id": "item.resin",
+      "name": "resin",
+      "description": "Tacky and slow. Smells like the forest does after rain."
+    },
+    {
+      "id": "item.iron_scrap",
+      "name": "iron scrap",
+      "description": "A hand's length of flat bar. Someone cut it to size a very long time ago."
+    },
+    {
+      "id": "item.glass_blank",
+      "name": "glass blank",
+      "description": "A cooled disc, thick at the middle. Not yet anything."
+    },
+    {
+      "id": "item.reading_lens",
+      "name": "reading lens",
+      "description": "Ground to bring close things closer. Vesk grinds the edge flat so it sits on stone without rocking."
+    },
+    {
+      "id": "item.wide_lens",
+      "name": "wide lens",
+      "description": "Shallow and broad. Takes in more and shows it smaller."
+    },
+    {
+      "id": "item.burning_lens",
+      "name": "burning lens",
+      "description": "Gathers light to a point. Vesk lights the kiln with one on clear mornings, out of habit rather than need."
+    },
+    {
+      "id": "item.drowned_lens",
+      "name": "drowned lens",
+      "description": "Older than Vesk's work and better made. It has been in the water long enough to grow a skin of green."
+    },
+    {
+      "id": "item.sunmoss",
+      "name": "sunmoss",
+      "description": "Grows on the shaded side and opens at dusk, which is the wrong way round and nobody knows why."
+    },
+    {
+      "id": "item.ledger_slip",
+      "name": "ledger slip",
+      "description": "Orrel's handwriting. A record that something changed hands, which in this valley is as good as coin."
+    },
+    {
+      "id": "item.cut_fuel",
+      "name": "cut fuel",
+      "description": "Split to a uniform length. Someone measured. Someone is still measuring."
+    }
+  ],
+
+  "recipes": [
+    {
+      "id": "recipe.glass_blank",
+      "name": "glass blank",
+      "family": "lensmithing",
+      "station": "kiln",
+      "inputs": { "item.white_sand": 2 },
+      "output_item": "item.glass_blank",
+      "output_count": 1
+    },
+    {
+      "id": "recipe.reading_lens",
+      "name": "reading lens",
+      "family": "lensmithing",
+      "station": "kiln",
+      "inputs": { "item.glass_blank": 1 },
+      "output_item": "item.reading_lens",
+      "output_count": 1
+    },
+    {
+      "id": "recipe.wide_lens",
+      "name": "wide lens",
+      "family": "lensmithing",
+      "station": "kiln",
+      "inputs": { "item.glass_blank": 2 },
+      "output_item": "item.wide_lens",
+      "output_count": 1
+    },
+    {
+      "id": "recipe.burning_lens",
+      "name": "burning lens",
+      "family": "lensmithing",
+      "station": "kiln",
+      "inputs": { "item.glass_blank": 1, "item.resin": 1 },
+      "output_item": "item.burning_lens",
+      "output_count": 1
+    }
+  ],
+
+  "clues": [
+    {
+      "id": "clue.scorched_bark",
+      "thread": "quietday",
+      "order": 1,
+      "title": "scorched bark, no fire",
+      "text": "The eastern trees are heat-marked halfway up the trunk. There is no burn on the ground beneath them. Whatever did this did not come from a fire anyone lit out here."
+    },
+    {
+      "id": "clue.kiln_ash",
+      "thread": "quietday",
+      "order": 2,
+      "title": "the ash is kiln ash",
+      "text": "Vesk turned it over twice and got annoyed. It is kiln ash, not wood ash — and his kiln was stone cold the last Quietday. He can prove it. He wants to know who else is firing."
+    },
+    {
+      "id": "clue.warm_channel",
+      "thread": "quietday",
+      "order": 3,
+      "title": "the channel runs warm",
+      "text": "Brann mentioned it the way you mention that it is Tuesday. On Quietday mornings the water at the head gate is warm to the wrist. It has done that for as long as he has minded it."
+    },
+    {
+      "id": "clue.second_kiln",
+      "thread": "quietday",
+      "order": 4,
+      "title": "there is a second kiln",
+      "text": "Under the shelf, back in the cut stone, where the pool used to sit on top of it. It is not on any map anyone in Heartwood uses. It is not a ruin."
+    },
+    {
+      "id": "clue.tended",
+      "thread": "quietday",
+      "order": 5,
+      "title": "someone is keeping it lit",
+      "text": "Fuel split to a uniform length, stacked dry. The floor swept. The fire banked the way you bank a fire you intend to come back to. This has been going on for a very long time, and it is not for you."
+    }
+  ]
+}

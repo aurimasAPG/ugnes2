@@ -1,0 +1,352 @@
+{
+  "npcs": [
+    {
+      "id": "npc.brann",
+      "name": "Brann",
+      "region": "heartwood",
+      "capability_kind": "traversal",
+      "schedule": [
+        { "from": "dawn", "to": "day", "waypoint": "wp.gear_housing" },
+        { "from": "dusk", "to": "night", "waypoint": "wp.brann_step" }
+      ],
+      "dialogue_entries": [
+        {
+          "dialogue": "dlg.brann",
+          "node": "kiln_confront",
+          "when": { "type": "quest_step", "quest": "quest.quietday", "step": "ask", "compare": "at" }
+        },
+        {
+          "dialogue": "dlg.brann",
+          "node": "offer_grate",
+          "when": { "type": "quest_state", "quest": "quest.grate", "state": "notstarted" }
+        },
+        {
+          "_note": "Below the grate offer for the same reason as Vesk's ash_talk — a mystery beat must never pre-empt an unoffered quest, or the player meets a character mid-thread.",
+          "dialogue": "dlg.brann",
+          "node": "warm_talk",
+          "when": {
+            "type": "all",
+            "of": [
+              { "type": "clue_known", "clue": "clue.kiln_ash" },
+              { "type": "not", "of": { "type": "clue_known", "clue": "clue.warm_channel" } }
+            ]
+          }
+        },
+        {
+          "dialogue": "dlg.brann",
+          "node": "sluice_hint",
+          "when": { "type": "quest_state", "quest": "quest.undersluice", "state": "active" }
+        },
+        { "dialogue": "dlg.brann", "node": "idle" }
+      ]
+    }
+  ],
+
+  "quests": [
+    {
+      "id": "quest.grate",
+      "title": "The Grate",
+      "shape": "repair",
+      "giver": "npc.brann",
+      "summary": "The debris grate at the channel head has been choked since spring and broken for longer.",
+      "steps": [
+        {
+          "id": "clear",
+          "tracker": "Clear the debris choking the grate at the channel head.",
+          "completion": [
+            { "id": "cleared", "when": { "type": "flag", "key": "grate.cleared", "value": "true" } }
+          ]
+        },
+        {
+          "id": "mend",
+          "tracker": "Mend the grate. It needs a length of iron scrap.",
+          "completion": [
+            { "id": "mended", "when": { "type": "flag", "key": "grate.mended", "value": "true" } }
+          ]
+        }
+      ],
+      "on_complete": [
+        { "type": "set_flag", "key": "sluice.grate_ok", "value": "true" },
+        { "type": "start_quest", "quest": "quest.undersluice" }
+      ]
+    },
+
+    {
+      "id": "quest.undersluice",
+      "title": "The Undersluice",
+      "shape": "unlock",
+      "giver": "npc.brann",
+      "summary": "With the grate sound, the pool can be drained the way it was meant to be — if anyone can still read the settings.",
+      "steps": [
+        {
+          "id": "read_plate",
+          "tracker": "Read the setting plate at the gear housing. It is weathered past the naked eye.",
+          "completion": [
+            { "id": "read", "when": { "type": "flag", "key": "plate.read", "value": "true" } }
+          ]
+        },
+        {
+          "id": "set_gates",
+          "tracker": "Set the three paddle gates to the positions on the plate.",
+          "completion": [
+            {
+              "id": "set",
+              "when": {
+                "type": "all",
+                "of": [
+                  { "type": "flag", "key": "gate.a", "value": "2" },
+                  { "type": "flag", "key": "gate.b", "value": "0" },
+                  { "type": "flag", "key": "gate.c", "value": "3" }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "open_head",
+          "tracker": "Open the head gate at dawn. There is not enough flow at any other hour.",
+          "completion": [
+            { "id": "drained", "when": { "type": "flag", "key": "pool.drained", "value": "true" } }
+          ]
+        }
+      ],
+      "on_complete": [
+        { "type": "set_flag", "key": "shelf.lower.open", "value": "true" }
+      ]
+    }
+  ],
+
+  "world": [
+    {
+      "id": "world.iron_scrap",
+      "kind": "pickup",
+      "region": "ash_shelf",
+      "interact_label": "Take the iron scrap",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "iron.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.iron_scrap", "count": 1 },
+        { "type": "set_flag", "key": "iron.taken", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.grate_debris",
+      "kind": "clearable",
+      "region": "heartwood",
+      "interact_label": "Clear the debris",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "grate.cleared", "value": "true" } },
+      "interact_when": { "type": "quest_state", "quest": "quest.grate", "state": "active" },
+      "on_interact": [
+        { "type": "set_flag", "key": "grate.cleared", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.grate",
+      "kind": "repairable",
+      "region": "heartwood",
+      "interact_label": "Mend the grate",
+      "visible_when": { "type": "flag", "key": "grate.cleared", "value": "true" },
+      "interact_when": {
+        "type": "all",
+        "of": [
+          { "type": "has_item", "item": "item.iron_scrap", "count": 1 },
+          { "type": "not", "of": { "type": "flag", "key": "grate.mended", "value": "true" } }
+        ]
+      },
+      "on_interact": [
+        { "type": "take_item", "item": "item.iron_scrap", "count": 1 },
+        { "type": "set_flag", "key": "grate.mended", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.setting_plate",
+      "kind": "readable",
+      "region": "heartwood",
+      "interact_label": "Read the plate",
+      "text": "Cut shallow and worn nearly flat. Through the lens the marks resolve:  A — two.  B — nought.  C — three.  Below, in a different hand and deeper: do not open below dawn flow.",
+      "interact_when": {
+        "type": "any",
+        "of": [
+          { "type": "has_item", "item": "item.reading_lens", "count": 1 },
+          { "type": "has_item", "item": "item.drowned_lens", "count": 1 }
+        ]
+      },
+      "on_interact": [
+        { "type": "set_flag", "key": "plate.read", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.gate_a",
+      "kind": "paddle_gate",
+      "region": "heartwood",
+      "interact_label": "Turn paddle gate A",
+      "visible_when": { "type": "flag", "key": "grate.mended", "value": "true" },
+      "on_interact": [
+        { "type": "cycle_flag", "key": "gate.a", "values": ["0", "1", "2", "3"] }
+      ]
+    },
+    {
+      "id": "world.gate_b",
+      "kind": "paddle_gate",
+      "region": "heartwood",
+      "interact_label": "Turn paddle gate B",
+      "visible_when": { "type": "flag", "key": "grate.mended", "value": "true" },
+      "on_interact": [
+        { "type": "cycle_flag", "key": "gate.b", "values": ["0", "1", "2", "3"] }
+      ]
+    },
+    {
+      "id": "world.gate_c",
+      "kind": "paddle_gate",
+      "region": "heartwood",
+      "interact_label": "Turn paddle gate C",
+      "visible_when": { "type": "flag", "key": "grate.mended", "value": "true" },
+      "on_interact": [
+        { "type": "cycle_flag", "key": "gate.c", "values": ["0", "1", "2", "3"] }
+      ]
+    },
+    {
+      "id": "world.head_gate",
+      "kind": "lever",
+      "region": "heartwood",
+      "interact_label": "Open the head gate",
+      "visible_when": { "type": "flag", "key": "grate.mended", "value": "true" },
+      "interact_when": {
+        "type": "all",
+        "of": [
+          { "type": "not", "of": { "type": "flag", "key": "pool.drained", "value": "true" } },
+          { "type": "time_of_day", "phases": ["dawn"] },
+          { "type": "flag", "key": "gate.a", "value": "2" },
+          { "type": "flag", "key": "gate.b", "value": "0" },
+          { "type": "flag", "key": "gate.c", "value": "3" }
+        ]
+      },
+      "on_interact": [
+        { "type": "set_flag", "key": "pool.drained", "value": "true" }
+      ]
+    },
+    {
+      "id": "world.pool_water",
+      "kind": "barrier",
+      "region": "ash_shelf",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "pool.drained", "value": "true" } },
+      "blocks_when": { "type": "not", "of": { "type": "flag", "key": "pool.drained", "value": "true" } }
+    },
+    {
+      "id": "world.drowned_lens",
+      "kind": "pickup",
+      "region": "ash_shelf",
+      "interact_label": "Reach into the water",
+      "visible_when": { "type": "not", "of": { "type": "flag", "key": "drowned.taken", "value": "true" } },
+      "on_interact": [
+        { "type": "give_item", "item": "item.drowned_lens", "count": 1 },
+        { "type": "set_flag", "key": "drowned.taken", "value": "true" }
+      ]
+    }
+  ],
+
+  "dialogue": [
+    {
+      "id": "dlg.brann",
+      "nodes": [
+        {
+          "id": "offer_grate",
+          "speaker": "npc.brann",
+          "lines": [
+            "Brann is sitting on the housing with his hands on his knees, watching water go past.",
+            "\"You've seen the grate, then. Choked since spring, and cracked before that.\"",
+            "\"I can clear it or I can climb down to it. Not both, not any more.\""
+          ],
+          "choices": [
+            {
+              "text": "I'll do it.",
+              "effects": [ { "type": "start_quest", "quest": "quest.grate" } ],
+              "goto": "grate_detail"
+            },
+            { "text": "What's it for?", "goto": "grate_why" }
+          ]
+        },
+        {
+          "id": "grate_why",
+          "speaker": "npc.brann",
+          "lines": [
+            "\"Keeps the channel from swallowing something it can't pass. That's all a grate is.\"",
+            "\"Mind — it's not the grate that matters. It's what you can do once it holds.\""
+          ],
+          "choices": [
+            {
+              "text": "Then I'll clear it.",
+              "effects": [ { "type": "start_quest", "quest": "quest.grate" } ],
+              "goto": "grate_detail"
+            },
+            { "text": "Another time." }
+          ]
+        },
+        {
+          "id": "grate_detail",
+          "speaker": "npc.brann",
+          "lines": [
+            "\"Pull the weed out first, all of it, or you'll mend around a blockage and feel clever about it.\"",
+            "\"Then you'll want iron. Flat bar, hand's length. There's some up on the shelf where they left it.\""
+          ]
+        },
+        {
+          "id": "sluice_hint",
+          "speaker": "npc.brann",
+          "lines": [
+            "\"Three paddles and a head gate. The paddles set the share, the head gate lets it go.\"",
+            "\"The settings are on the plate. Don't guess them — guessing them is how the last man flooded the low road.\"",
+            "\"And dawn. Only dawn. There's no push in it any other hour.\""
+          ]
+        },
+        {
+          "id": "warm_talk",
+          "speaker": "npc.brann",
+          "lines": [
+            "\"Kiln ash on the leaves.\" He says it the way you'd agree about rain. \"Aye, that'll be the warm mornings.\"",
+            "\"Water at the head gate comes up warm on a Quietday. Warm to the wrist. Always has.\"",
+            "He notices you have stopped moving.",
+            "\"...That's not usual, is it.\""
+          ],
+          "on_enter": [ { "type": "learn_clue", "clue": "clue.warm_channel" } ]
+        },
+        {
+          "id": "kiln_confront",
+          "speaker": "npc.brann",
+          "lines": [
+            "He knows before you say it. He puts his hands on his knees again."
+          ],
+          "choices": [
+            {
+              "text": "Someone is keeping that kiln lit.",
+              "effects": [ { "type": "advance_quest", "quest": "quest.quietday" } ],
+              "goto": "kiln_answer"
+            },
+            {
+              "text": "Why didn't you say?",
+              "effects": [ { "type": "advance_quest", "quest": "quest.quietday" } ],
+              "goto": "kiln_answer"
+            }
+          ]
+        },
+        {
+          "id": "kiln_answer",
+          "speaker": "npc.brann",
+          "lines": [
+            "\"I am,\" he says. \"Have been. Thirty year, near enough.\"",
+            "\"Sile had it before me. She took me down there the once, showed me the bank and the length to cut the fuel, and told me never to let it out.\"",
+            "\"I asked her why. She said she asked too, and got the same answer I'm giving you.\"",
+            "He looks at the water.",
+            "\"It wants to stay warm down there. That's all I know, and I'd rather be the fool who kept it lit than the one who found out.\""
+          ]
+        },
+        {
+          "id": "idle",
+          "speaker": "npc.brann",
+          "lines": [
+            "\"Water's doing what it does. I'm watching in case it stops.\""
+          ]
+        }
+      ]
+    }
+  ]
+}

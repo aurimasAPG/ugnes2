@@ -1,0 +1,11 @@
+{
+  "settings": {
+    "day_length_minutes": 1440,
+    "dawn_start": 300,
+    "day_start": 480,
+    "dusk_start": 1140,
+    "night_start": 1260,
+    "start_minute": 420,
+    "seconds_per_minute": 0.6
+  }
+}
