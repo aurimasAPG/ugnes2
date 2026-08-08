@@ -17,7 +17,15 @@ namespace HiddenValley.Unity
     /// </summary>
     public sealed class FrameTimeHud : MonoBehaviour
     {
+        // Dev builds show the readout; release builds hide it behind the 3-finger
+        // gesture so testers never see debug text but the device pass can always
+        // summon it.
         [SerializeField] private bool visible = true;
+
+        private void Awake()
+        {
+            if (!UnityEngine.Debug.isDebugBuild) visible = false;
+        }
         [SerializeField] private float windowSeconds = 10f;
         [SerializeField] private int targetFps = 60;
 
@@ -28,6 +36,7 @@ namespace HiddenValley.Unity
 
         private float _worst;
         private float _windowElapsed;
+        private bool _gestureHeld;
 
         public float WorstMs => _worst * 1000f;
 
@@ -44,11 +53,16 @@ namespace HiddenValley.Unity
             _windowElapsed += dt;
             if (_windowElapsed >= windowSeconds) ResetWindow();
 
-            bool reset = Input.touchCount >= 3;
+            bool gesture = Input.touchCount >= 3;
 #if UNITY_EDITOR
-            reset |= Input.GetKeyDown(KeyCode.F1);
+            gesture |= Input.GetKeyDown(KeyCode.F1);
 #endif
-            if (reset) ResetWindow();
+            if (gesture && !_gestureHeld)
+            {
+                visible = !visible; // 3-finger tap toggles; the reset rides along
+                ResetWindow();
+            }
+            _gestureHeld = gesture;
         }
 
         private void ResetWindow()

@@ -231,6 +231,8 @@ namespace HiddenValley.Unity
             return n;
         }
 
+        private AudioSource _water;
+
         public void StartAmbience()
         {
             var clip = Load("amb_valley");
@@ -239,7 +241,55 @@ namespace HiddenValley.Unity
             _ambience.clip = clip;
             _ambience.volume = masterVolume * ambienceVolume;
             _ambience.Play();
+
+            // Water bed: a second loop whose volume follows distance to the channel
+            // spine (x = -2, z -28..26). The river gets louder as you approach — the
+            // cheapest spatial audio there is.
+            var water = Load("sfx_water");
+            if (water != null && _water == null)
+            {
+                _water = gameObject.AddComponent<AudioSource>();
+                _water.clip = water;
+                _water.loop = true;
+                _water.playOnAwake = false;
+                _water.spatialBlend = 0f;
+                _water.volume = 0f;
+                _water.Play();
+            }
+
             Debug.Log("[HiddenValley] Ambience started: amb_valley");
+        }
+
+        /// <summary>Day-phase ambience: full by day, hushed at night; water bed by
+        /// proximity to the channel. One lerp per frame, no allocation.</summary>
+        private void LateUpdateAmbience()
+        {
+            var boot = GameBootstrap.Instance;
+            if (boot?.Game == null || _ambience == null) return;
+
+            float phaseScale = boot.Game.State.Clock.PhaseName switch
+            {
+                "night" => 0.5f,
+                "dusk" => 0.8f,
+                "dawn" => 0.9f,
+                _ => 1f
+            };
+            float target = masterVolume * ambienceVolume * phaseScale;
+            // Only ease when not ducked by VO (the duck path owns the volume then).
+            if (_voice == null || !_voice.isPlaying)
+                _ambience.volume = Mathf.MoveTowards(_ambience.volume, target, Time.deltaTime * 0.15f);
+
+            if (_water != null && _player != null)
+            {
+                Vector3 p = _player.transform.position;
+                float dz = Mathf.Max(0f, Mathf.Max(-28f - p.z, p.z - 26f));
+                float dx = Mathf.Abs(p.x + 2f);
+                float distance = Mathf.Sqrt(dx * dx + dz * dz);
+                float proximity = Mathf.Clamp01(1f - distance / 14f);
+                _water.volume = Mathf.MoveTowards(
+                    _water.volume, masterVolume * ambienceVolume * 0.9f * proximity * proximity,
+                    Time.deltaTime * 0.3f);
+            }
         }
 
         public void PlayMusicSting(string name)
@@ -308,6 +358,8 @@ namespace HiddenValley.Unity
                 if (_ambience.volume < target - 0.01f)
                     _ambience.volume = Mathf.MoveTowards(_ambience.volume, target, Time.deltaTime * 0.5f);
             }
+
+            LateUpdateAmbience();
         }
 
         public void PlayDialogueForSpeaker(string speaker)

@@ -35,6 +35,10 @@ namespace HiddenValley.Editor
         {
             ValidateContentOrThrow();
 
+            // Monotonic build number for TestFlight: UTC yyMMddHHmm — sortable, unique
+            // per build, no state file to lose.
+            PlayerSettings.iOS.buildNumber = System.DateTime.UtcNow.ToString("yyMMddHHmm");
+
             var scenes = EditorBuildSettings.scenes
                 .Where(s => s.enabled)
                 .Select(s => s.path)
