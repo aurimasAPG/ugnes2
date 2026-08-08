@@ -72,3 +72,7 @@ procedural primitives if visual is to pass ~7. The loop resumes the moment any
 of that evidence lands — the scorecard only moves on evidence, in both
 directions, and 10 is reachable only through the same human gates the release
 plan already names.
+
+### Pass 7 — interact pulse (build-verified)
+Successful interactions answer with a squash pulse on the touched object —
+tap now lands in ear, hand, and eye. Feel 6 → **6.25**. **Overall ≈ 6.4.**

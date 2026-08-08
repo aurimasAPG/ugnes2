@@ -246,7 +246,13 @@ namespace HiddenValley.Unity
                 var binder = interaction.Current;
                 GameAudio.Instance?.Interact();
                 Haptics.Light();
-                if (binder.Interact() && !string.IsNullOrEmpty(binder.Text))
+                bool acted = binder.Interact();
+                if (acted)
+                {
+                    var visual = binder.transform.Find("Visual");
+                    Pulse.At(visual != null ? visual : binder.transform);
+                }
+                if (acted && !string.IsNullOrEmpty(binder.Text))
                 {
                     _readableTitle = binder.Label;
                     _readableText = binder.Text;
