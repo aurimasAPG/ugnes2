@@ -91,3 +91,10 @@ Pip's moth carries a true bloom halo; windows glow soft across the dark;
 painted characters grounded by blob shadows. Watch item: Mac 1%-high hit
 17.6 ms with HDR — the device re-measure decides if renderScale gives it back.
 One hot lamp pane to tame. Visual 7 → **7.5**. **Overall 6.6.**
+
+### Pass 10 — painted surface tileables (screenshot-verified on the kiln)
+Nano-Banana-painted plaster, slate shingle and coursed masonry detail maps,
+contrast-normalized into the tintable band so the palette keeps owning hue
+across day/night. Buildings gain hand-painted surface without breaking the
+color system. Visual holds 7.5 (texture detail arrived; awaiting a clear
+full-frame verify for more). **Overall 6.6.**
