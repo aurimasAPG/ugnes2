@@ -100,6 +100,14 @@ namespace HiddenValley.Unity
             }
 
             _lastRevision = Game.State.Revision;
+
+            // Dev hook: "-hvminute 1200" starts the clock at a chosen minute — exists so
+            // dusk and night can be screenshot-verified without playing to them.
+            var args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+                if (args[i] == "-hvminute" && int.TryParse(args[i + 1], out var minute))
+                    Game.State.SetClock(new Clock(Game.Content.Settings, 0, minute));
+
             Ready?.Invoke();
         }
 

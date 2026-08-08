@@ -45,3 +45,14 @@ World-alive 6 → **6.5**, UX 5.5 → **6**. **Overall 5.9.**
 amb_night (brown-noise floor + cricket chirp trains, seamless loop) crossfades
 in at dusk/night; sparse daytime gusts, silenced by Quietday stillness.
 Audio 5 → **6**. **Overall 6.0.**
+
+### Pass 5 — time-of-day dev hook, emissive windows, night verified (screenshots)
+`-hvminute` launch arg for photographing any hour; lamp material gains emission
+after the first night shot showed dark facades. Night re-shoot: lit windows
+across the village, Pip's pool of light on the path — the identity image.
+Visual 5.5 → **6**, cohesion 7 → **7.5**. **Overall 6.2.**
+
+Honest ceiling note: with procedural primitives + lighting, visual tops out
+near 7; feel and performance need the human device pass to move further; the
+hook test alone arbitrates anything above ~8. The loop continues inside those
+limits and states them rather than inflating.

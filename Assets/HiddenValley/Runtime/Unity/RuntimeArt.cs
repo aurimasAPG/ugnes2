@@ -77,6 +77,14 @@ namespace HiddenValley.Unity
             if (material.HasProperty("_Smoothness"))
                 material.SetFloat("_Smoothness", SmoothnessFor(key));
 
+            // Lamp surfaces emit: windows must glow at night or the village dies at
+            // dusk (night screenshot, pass 5 — dark facades under a working sky).
+            if (key == "lamp" && material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", new Color(1f, 0.78f, 0.45f) * 1.35f);
+            }
+
             MatCache[key] = material;
             return material;
         }

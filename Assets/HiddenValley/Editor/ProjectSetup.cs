@@ -309,6 +309,14 @@ namespace HiddenValley.Editor
             if (material.HasProperty("_Smoothness"))
                 material.SetFloat("_Smoothness", RuntimeArt.SmoothnessFor(key));
 
+            // Window panes glow after dark (mirrors RuntimeArt's lamp emission).
+            if (key == "lamp" && material.HasProperty("_EmissionColor"))
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", new Color(1f, 0.78f, 0.45f) * 1.35f);
+                material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            }
+
             EditorUtility.SetDirty(material);
             return material;
         }
