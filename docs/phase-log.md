@@ -472,6 +472,30 @@ Passes run: **none on device** — every claim above is Mac-verified only. The o
 device pass covers M0–M5 in one session: play 10 minutes, record worst frame time,
 confirm haptics, walk one dawn and one dusk.
 
+### 2026-08-08 — M7 characters + release scaffolding + decision docs
+
+- **Character rigs replace capsules and billboards** (`CharacterRig`): per-key
+  proportion table — Vesk broad with apron, Orrel tall with ledger, Coll stooped
+  with gear charm, hooded player — built at runtime onto the Visual anchor so
+  CapsuleAnimator drives them unchanged; Pip is a moth with code-flapped wings whose
+  beat quickens with `Dimness`. World billboards retired; portraits stay in dialogue.
+  [CONFIRM] #5 resolved *de facto*: the pipeline is fully generated/procedural;
+  reverse only by explicit owner decision.
+- **Release scaffolding:** app icon (lamp-moth over slate valley, deliberately
+  title-independent), monotonic TestFlight build numbers, FrameTimeHud release-gated
+  behind a 3-finger toggle, `tools/phase2-gate-device.sh` (the on-device gate as one
+  command), save-robustness tests (garbage/truncated saves → clean fresh start;
+  50/50 total).
+- **Decision docs:** `docs/title-shortlist.md` (recommendation: "The Undersluice"),
+  `docs/beat-sheet.md` (13 beats, timings to be filled from real sessions),
+  `docs/passes/derivativeness-02.md` — the assembled look assessed: palette,
+  silhouettes, Pip, buildings all clear; title remains the standing risk.
+- **Deferred with reason:** wind vertex sway + moss/wetness shader — wants real
+  device profiling first (vertex-stage cost is a claim until measured on the A15).
+
+Verified: 50/50 tests; Mac player boots and runs; screenshots confirm the rigged
+characters and the dawn look. Device passes still owed by the owner.
+
 ---
 
 ## What the next session should do

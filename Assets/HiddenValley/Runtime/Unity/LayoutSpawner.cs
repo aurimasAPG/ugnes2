@@ -119,18 +119,12 @@ namespace HiddenValley.Unity
             var root = new GameObject(id) { layer = ActorLayer };
             root.transform.position = Pos(spec["pos"]);
 
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-            visual.name = "Visual";
-            visual.layer = ActorLayer;
-            Destroy(visual.GetComponent<Collider>());
+            var visual = new GameObject("Visual") { layer = ActorLayer };
             visual.transform.SetParent(root.transform, false);
-            visual.transform.localPosition = new Vector3(0, 0.9f, 0);
-            visual.transform.localScale = new Vector3(0.7f, 0.9f, 0.7f);
-            visual.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("npc");
 
-            // npc.vesk → vesk billboard, etc.
-            string portraitKey = id.StartsWith("npc.") ? id.Substring(4) : id;
-            RuntimeArt.AttachBillboard(root.transform, portraitKey);
+            // npc.vesk → the vesk rig. Billboards retired; portraits live in dialogue.
+            string rigKey = id.StartsWith("npc.") ? id.Substring(4) : id;
+            CharacterRig.Build(visual.transform, rigKey);
 
             var waypoints = (JObject)spec["waypoints"] ?? new JObject();
             var waypointRoot = GameObject.Find("Waypoints") ?? new GameObject("Waypoints");
@@ -155,14 +149,34 @@ namespace HiddenValley.Unity
             var root = new GameObject("Pip") { layer = ActorLayer };
             root.transform.position = Pos(layout["pip"]?["pos"]);
 
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            visual.name = "Visual";
-            visual.layer = ActorLayer;
-            Destroy(visual.GetComponent<Collider>());
+            // A moth, not an orb: small furred body, two wing quads flapped by
+            // PipCompanion (faster when the light thins), emissive-warm material.
+            var visual = new GameObject("Visual") { layer = ActorLayer };
             visual.transform.SetParent(root.transform, false);
-            visual.transform.localScale = Vector3.one * 0.45f;
-            visual.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("pip");
-            RuntimeArt.AttachBillboard(root.transform, "pip", height: 0.9f, width: 0.9f);
+
+            var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            body.name = "Body";
+            body.layer = ActorLayer;
+            Destroy(body.GetComponent<Collider>());
+            body.transform.SetParent(visual.transform, false);
+            body.transform.localRotation = Quaternion.Euler(90, 0, 0);
+            body.transform.localScale = new Vector3(0.12f, 0.16f, 0.12f);
+            body.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("pip");
+
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var wing = GameObject.CreatePrimitive(PrimitiveType.Quad);
+                wing.name = side < 0 ? "Wing.L" : "Wing.R";
+                wing.layer = ActorLayer;
+                Destroy(wing.GetComponent<Collider>());
+                wing.transform.SetParent(visual.transform, false);
+                wing.transform.localPosition = new Vector3(side * 0.10f, 0.03f, 0);
+                wing.transform.localScale = new Vector3(0.22f, 0.3f, 1f);
+                wing.transform.localRotation = Quaternion.Euler(90, 0, side * 20f);
+                var wingRenderer = wing.GetComponent<MeshRenderer>();
+                wingRenderer.sharedMaterial = RuntimeArt.MaterialFor("pip");
+                wingRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
 
             var lampGo = new GameObject("Lamp") { layer = ActorLayer };
             lampGo.transform.SetParent(root.transform, false);

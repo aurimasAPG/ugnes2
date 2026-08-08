@@ -134,6 +134,12 @@ namespace HiddenValley.Editor
             PlayerSettings.iOS.appleEnableAutomaticSigning = true;
             PlayerSettings.iOS.appleDeveloperTeamID = "32U8KR34UT";
 
+            // App icon — the warm lamp/moth against the slate valley. Title-independent
+            // by design: [CONFIRM] #8 (the name) can change without touching it.
+            var icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/HiddenValley/Art/AppIcon.png");
+            if (icon != null)
+                PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { icon }, IconKind.Application);
+
             // Landscape-only. A follow-camera exploration game framed for portrait is a
             // different layout job; if that decision changes it changes here, once.
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;

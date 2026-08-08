@@ -109,6 +109,27 @@ namespace HiddenValley.Unity
             }
 
             UpdateHalo();
+            FlapWings(time);
+        }
+
+        private Transform _wingL, _wingR;
+
+        /// <summary>Wing beat quickens as the light thins — distress you can see.</summary>
+        private void FlapWings(float time)
+        {
+            if (_wingL == null)
+            {
+                var visual = transform.Find("Visual");
+                if (visual == null) return;
+                _wingL = visual.Find("Wing.L");
+                _wingR = visual.Find("Wing.R");
+                if (_wingL == null) return;
+            }
+
+            float rate = 9f + 11f * _dimness;
+            float flap = Mathf.Sin(time * rate) * 38f;
+            _wingL.localRotation = Quaternion.Euler(90, 0, 20f + flap);
+            _wingR.localRotation = Quaternion.Euler(90, 0, -20f - flap);
         }
 
         // ---- glow halo --------------------------------------------------------

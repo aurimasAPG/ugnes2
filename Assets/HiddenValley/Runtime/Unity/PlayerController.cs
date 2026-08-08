@@ -51,9 +51,21 @@ namespace HiddenValley.Unity
         private void Start()
         {
             // Procedural life rides on the visual child, attached from code only —
-            // scene-serialized additions are the level0-corruption vector.
+            // scene-serialized additions are the level0-corruption vector. The scene's
+            // placeholder capsule is rebuilt into the player rig at the same time.
             var visual = transform.Find("Visual");
-            if (visual != null) CapsuleAnimator.Attach(visual, this);
+            if (visual != null)
+            {
+                // The rig replaces both the capsule and the billboard portrait; the
+                // PlayerPortrait component must go too or it re-adds the quad later.
+                var portrait = GetComponent<PlayerPortrait>();
+                if (portrait != null) Destroy(portrait);
+
+                CharacterRig.Build(visual, "player");
+                var nose = transform.Find("Nose");
+                if (nose != null) Destroy(nose.gameObject); // the rig has a real head
+                CapsuleAnimator.Attach(visual, this);
+            }
         }
 
         private void Update()
