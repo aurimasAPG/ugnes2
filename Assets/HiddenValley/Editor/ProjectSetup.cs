@@ -72,9 +72,35 @@ namespace HiddenValley.Editor
             // and grey-box geometry aliases badly without it), short shadow range.
             pipeline.supportsHDR = false;
             pipeline.msaaSampleCount = 4;
-            pipeline.shadowDistance = 45f;
             pipeline.renderScale = 1f;
+
+            // Deliberate shadows (they are the most expensive thing in the frame):
+            // 2 cascades = crisp near shadows, 2048 map, short fade — recovers ~0.5-1 ms
+            // on device versus the defaults, which funds the post-processing volume.
+            pipeline.shadowDistance = 40f;
+            pipeline.shadowCascadeCount = 2;
+            var pipelineSo = new SerializedObject(pipeline);
+            var shadowRes = pipelineSo.FindProperty("m_MainLightShadowmapResolution");
+            if (shadowRes != null) { shadowRes.intValue = 2048; pipelineSo.ApplyModifiedPropertiesWithoutUndo(); }
             EditorUtility.SetDirty(pipeline);
+
+            // Skybox material lives in Resources so the custom shader ships in builds
+            // (a runtime-created material would find its shader stripped).
+            var skyShader = Shader.Find("HiddenValley/GradientSkybox");
+            if (skyShader != null)
+            {
+                Directory.CreateDirectory("Assets/HiddenValley/Resources/Art");
+                const string skyPath = "Assets/HiddenValley/Resources/Art/SkyboxGradient.mat";
+                var sky = AssetDatabase.LoadAssetAtPath<UnityEngine.Material>(skyPath);
+                if (sky == null)
+                {
+                    sky = new UnityEngine.Material(skyShader);
+                    AssetDatabase.CreateAsset(sky, skyPath);
+                }
+                else sky.shader = skyShader;
+                EditorUtility.SetDirty(sky);
+            }
+            else Debug.LogWarning("[HiddenValley] GradientSkybox shader not found; sky will be default.");
 
             GraphicsSettings.defaultRenderPipeline = pipeline;
             QualitySettings.renderPipeline = pipeline;
@@ -257,18 +283,25 @@ namespace HiddenValley.Editor
                 : file == "GreyboxDark" ? "dark"
                 : file.ToLowerInvariant();
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(
-                $"Assets/HiddenValley/Resources/Art/Textures/mat_{key}.jpg");
+                          $"Assets/HiddenValley/Resources/Art/Textures/mat_{key}.jpg")
+                      ?? AssetDatabase.LoadAssetAtPath<Texture2D>(
+                          $"Assets/HiddenValley/Resources/Art/Textures/mat_{key}.png");
             if (tex != null)
             {
                 material.mainTexture = tex;
                 if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", tex);
-                material.color = Color.white;
-                if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
+                // Textures are near-white detail; the palette keeps owning the hue so
+                // editor-baked blocks and runtime-spawned objects match exactly.
+                material.color = color;
+                if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", color);
             }
             else
             {
                 material.color = color;
             }
+
+            if (material.HasProperty("_Smoothness"))
+                material.SetFloat("_Smoothness", RuntimeArt.SmoothnessFor(key));
 
             EditorUtility.SetDirty(material);
             return material;

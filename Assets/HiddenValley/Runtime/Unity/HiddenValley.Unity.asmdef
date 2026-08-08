@@ -1,7 +1,7 @@
 {
     "name": "HiddenValley.Unity",
     "rootNamespace": "HiddenValley.Unity",
-    "references": [ "HiddenValley.Core" ],
+    "references": [ "HiddenValley.Core", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Core.Runtime" ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

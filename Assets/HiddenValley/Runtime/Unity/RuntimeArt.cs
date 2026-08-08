@@ -14,18 +14,43 @@ namespace HiddenValley.Unity
         private static readonly Dictionary<string, Texture2D> IconCache = new Dictionary<string, Texture2D>();
         private static readonly Dictionary<string, Texture2D> CharCache = new Dictionary<string, Texture2D>();
 
-        private static readonly Dictionary<string, Color> Fallback = new Dictionary<string, Color>
+        /// <summary>
+        /// THE palette — single source for both the editor generators and the runtime
+        /// spawner (they used to carry diverging copies). Tuned to the world bible's
+        /// sentence: "beautiful in the specific way that wet stone and low cloud are
+        /// beautiful… never twee" — cool desaturated minerals, warmth reserved for
+        /// man-made light (lamp, kiln, Pip).
+        /// </summary>
+        public static readonly Dictionary<string, Color> Palette = new Dictionary<string, Color>
         {
-            ["grey"] = new Color(0.55f, 0.55f, 0.55f),
-            ["dark"] = new Color(0.35f, 0.35f, 0.38f),
-            ["sand"] = new Color(0.76f, 0.68f, 0.50f),
-            ["moss"] = new Color(0.45f, 0.62f, 0.35f),
-            ["bark"] = new Color(0.45f, 0.36f, 0.28f),
-            ["water"] = new Color(0.30f, 0.50f, 0.65f),
-            ["npc"] = new Color(0.62f, 0.55f, 0.72f),
-            ["pip"] = new Color(0.95f, 0.9f, 0.7f),
-            ["player"] = new Color(0.85f, 0.8f, 0.7f),
+            ["grey"] = new Color(0.52f, 0.54f, 0.56f),   // wet field stone
+            ["dark"] = new Color(0.30f, 0.32f, 0.36f),
+            ["stone"] = new Color(0.46f, 0.49f, 0.52f),  // channel masonry
+            ["slate"] = new Color(0.28f, 0.31f, 0.36f),  // roofs
+            ["sand"] = new Color(0.68f, 0.63f, 0.52f),   // cold buff
+            ["earth"] = new Color(0.42f, 0.38f, 0.32f),  // paths
+            ["moss"] = new Color(0.42f, 0.52f, 0.38f),   // grey-green
+            ["bark"] = new Color(0.38f, 0.32f, 0.27f),
+            ["water"] = new Color(0.28f, 0.42f, 0.52f),
+            ["ash"] = new Color(0.55f, 0.53f, 0.50f),    // lower shelf / Quietday
+            ["lamp"] = new Color(1.00f, 0.85f, 0.60f),   // the warm accent
+            ["npc"] = new Color(0.58f, 0.54f, 0.62f),
+            ["pip"] = new Color(0.95f, 0.90f, 0.70f),
+            ["player"] = new Color(0.80f, 0.76f, 0.68f),
         };
+
+        /// <summary>Wet materials get specular life from the sun; everything else stays matte.</summary>
+        public static readonly Dictionary<string, float> Smoothness = new Dictionary<string, float>
+        {
+            ["grey"] = 0.45f, ["stone"] = 0.45f, ["slate"] = 0.40f, ["dark"] = 0.35f,
+            ["water"] = 0.75f,
+        };
+
+        public static Color PaletteColor(string key)
+            => Palette.TryGetValue(key ?? "grey", out var c) ? c : Palette["grey"];
+
+        public static float SmoothnessFor(string key)
+            => Smoothness.TryGetValue(key ?? "", out var s) ? s : 0.08f;
 
         public static Material MaterialFor(string key)
         {
@@ -40,13 +65,17 @@ namespace HiddenValley.Unity
             if (tex != null)
             {
                 material.mainTexture = tex;
-                material.color = Color.white;
+                // Textures are near-white detail maps; the palette still owns the hue.
+                material.color = PaletteColor(key);
             }
             else
             {
-                material.color = Fallback.TryGetValue(key, out var c) ? c : Fallback["grey"];
+                material.color = PaletteColor(key);
                 Debug.LogWarning($"[HiddenValley] Missing texture Art/Textures/mat_{key}");
             }
+
+            if (material.HasProperty("_Smoothness"))
+                material.SetFloat("_Smoothness", SmoothnessFor(key));
 
             MatCache[key] = material;
             return material;

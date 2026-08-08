@@ -38,15 +38,7 @@ namespace HiddenValley.Editor
         /// occlusion cast see only the world, never the people standing in it.</summary>
         private const int ActorLayer = 2; // Ignore Raycast
 
-        private static readonly Dictionary<string, Color> Palette = new Dictionary<string, Color>
-        {
-            ["grey"] = new Color(0.55f, 0.55f, 0.55f),
-            ["dark"] = new Color(0.35f, 0.35f, 0.38f),
-            ["sand"] = new Color(0.76f, 0.68f, 0.50f),
-            ["moss"] = new Color(0.45f, 0.62f, 0.35f),
-            ["bark"] = new Color(0.45f, 0.36f, 0.28f),
-            ["water"] = new Color(0.30f, 0.50f, 0.65f),
-        };
+        // The palette lives in RuntimeArt (single source for editor + runtime).
 
         [MenuItem("Hidden Valley/Setup/Heartwood Scene")]
         public static void GenerateHeartwood()
@@ -116,8 +108,7 @@ namespace HiddenValley.Editor
 
             string mat = spec["mat"]?.Value<string>() ?? "grey";
             go.GetComponent<MeshRenderer>().sharedMaterial = ProjectSetup.Material(
-                $"{SettingsDir}/Mat_{mat}.mat",
-                Palette.TryGetValue(mat, out var color) ? color : Palette["grey"]);
+                $"{SettingsDir}/Mat_{mat}.mat", RuntimeArt.PaletteColor(mat));
 
             return go;
         }

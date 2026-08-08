@@ -100,6 +100,10 @@ namespace HiddenValley.Unity
 
         private void Start()
         {
+            // The atmosphere is code-spawned like every other runtime addition — the
+            // scene shell stays minimal (level0 landmine).
+            AtmosphereRig.Spawn();
+
             // Reposition the player where they were saved. Start, not Awake: every scene
             // object exists by now, and the CharacterController must be toggled around a
             // teleport or it snaps the transform back.
