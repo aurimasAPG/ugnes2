@@ -339,8 +339,17 @@ namespace HiddenValley.Unity
                 {
                     float x = cx + ((float)random.NextDouble() - 0.5f) * w;
                     float z = cz + ((float)random.NextDouble() - 0.5f) * d;
+
+                    // Snap to the actual ground: terrain plates tilt and offset, and a
+                    // tuft floating a hand's width above its shadow reads as a bug from
+                    // ten meters away (pass 1 screenshot).
+                    Vector3 at = new Vector3(x, y, z);
+                    if (Physics.Raycast(new Vector3(x, y + 4f, z), Vector3.down,
+                            out var hit, 12f, ~(1 << ActorLayer), QueryTriggerInteraction.Ignore))
+                        at = hit.point;
+
                     string kind = items[random.Next(items.Count)];
-                    SpawnScatterItem(root.transform, kind, new Vector3(x, y, z), random);
+                    SpawnScatterItem(root.transform, kind, at, random);
                     total++;
                 }
             }

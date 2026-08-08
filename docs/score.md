@@ -31,3 +31,12 @@ Defects found by the same screenshot: scatter tufts float above tilted terrain
 plates; Mac 1%-high crept to 16.8 ms (more draws + sway writes).
 
 Visual 4.5 → **5.5**. Others unchanged. **Overall 5.4 → 5.6.**
+
+### Pass 2 — scatter grounding + sway trim (screenshot-verified)
+Tufts raycast-snapped to plates; sway cost trimmed. Steady 8.2/9.4ms on Mac.
+Performance 5 → **5.5** (Mac evidence; device 60fps still pending). Overall 5.6.
+
+### Pass 3 — swifts + scrolling panels + thumb targets (screenshot-verified)
+Seven banking swifts over the village (absent on Quietdays — absence as
+information); Bag/Account/Crafting scroll; toggles enlarged.
+World-alive 6 → **6.5**, UX 5.5 → **6**. **Overall 5.9.**

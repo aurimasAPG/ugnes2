@@ -63,6 +63,7 @@ namespace HiddenValley.Unity
         private List<DialogueChoice> _choiceCache = new List<DialogueChoice>();
         private readonly List<string> _bagCache = new List<string>();
         private readonly List<string> _bagIcons = new List<string>();
+        private Vector2 _accountScroll, _bagScroll, _craftScroll;
 
         /// <summary>
         /// Attach a GameHud to <paramref name="host"/> (normally the Controls object) and
@@ -563,6 +564,7 @@ namespace HiddenValley.Unity
             GUILayout.BeginArea(inner);
             GUILayout.Label("Craft — " + _craftingStation, _inkTitle);
 
+            _craftScroll = GUILayout.BeginScrollView(_craftScroll);
             var recipes = StationRecipes();
             if (recipes.Count == 0)
                 GUILayout.Label("You don't know any recipes for this station yet.", _ink);
@@ -594,6 +596,7 @@ namespace HiddenValley.Unity
                 GUILayout.Space(h * 0.015f);
             }
 
+            GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
             GUILayout.Label("tap anywhere to close", _inkFoot);
             GUILayout.EndArea();
@@ -603,8 +606,8 @@ namespace HiddenValley.Unity
         {
             if (_session != null) return;
 
-            float bw = w * 0.11f, bh = h * 0.07f;
-            if (GUI.Button(new Rect(w * 0.30f, h * 0.02f, bw, bh), "Bag", _button))
+            float bw = w * 0.14f, bh = h * 0.09f;
+            if (GUI.Button(new Rect(w * 0.26f, h * 0.02f, bw, bh), "Bag", _button))
             {
                 bool opening = !_bagOpen;
                 _bagOpen = !_bagOpen;
@@ -612,7 +615,7 @@ namespace HiddenValley.Unity
                 if (_bagOpen && opening) GameAudio.Instance?.UiOpen();
                 else if (!_bagOpen) GameAudio.Instance?.UiClose();
             }
-            if (GUI.Button(new Rect(w * 0.42f, h * 0.02f, bw, bh), "Account", _button))
+            if (GUI.Button(new Rect(w * 0.41f, h * 0.02f, bw, bh), "Account", _button))
             {
                 bool opening = !_accountOpen;
                 _accountOpen = !_accountOpen;
@@ -738,6 +741,7 @@ namespace HiddenValley.Unity
                                  panel.width - w * 0.04f, panel.height - h * 0.04f);
             GUILayout.BeginArea(inner);
             GUILayout.Label("Bag", _inkTitle);
+            _bagScroll = GUILayout.BeginScrollView(_bagScroll);
 
             if (_bagCache.Count == 0) GUILayout.Label("Nothing carried.", _ink);
             else
@@ -755,6 +759,7 @@ namespace HiddenValley.Unity
                 }
             }
 
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
 
@@ -767,6 +772,7 @@ namespace HiddenValley.Unity
                                  panel.width - w * 0.04f, panel.height - h * 0.04f);
             GUILayout.BeginArea(inner);
             GUILayout.Label("The Account", _inkTitle);
+            _accountScroll = GUILayout.BeginScrollView(_accountScroll);
 
             var clues = _boot.Game.KnownClues();
             if (clues.Count == 0) GUILayout.Label("Nothing written yet.", _ink);
@@ -778,6 +784,7 @@ namespace HiddenValley.Unity
                     GUILayout.Label(clue.Text, _ink);
                 }
 
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
     }

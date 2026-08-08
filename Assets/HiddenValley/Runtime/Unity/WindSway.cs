@@ -51,9 +51,10 @@ namespace HiddenValley.Unity
             float amplitude = amplitudeDegrees * (1f - still);
             float time = Time.time * frequency * Mathf.PI * 2f;
 
-            // A third of the field per frame — sway at 20 Hz per blade reads identically
-            // to 60 and costs a third as much.
-            int slice = Mathf.Max(1, _blades.Count / 3);
+            // A fifth of the field per frame — sway at 12 Hz per blade still reads as
+            // continuous motion and trims the write cost (pass 1 found the Mac 1%-high
+            // creeping toward budget).
+            int slice = Mathf.Max(1, _blades.Count / 5);
             for (int n = 0; n < slice; n++)
             {
                 _cursor = (_cursor + 1) % _blades.Count;
