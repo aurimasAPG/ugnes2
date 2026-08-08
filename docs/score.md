@@ -56,3 +56,19 @@ Honest ceiling note: with procedural primitives + lighting, visual tops out
 near 7; feel and performance need the human device pass to move further; the
 hook test alone arbitrates anything above ~8. The loop continues inside those
 limits and states them rather than inflating.
+
+### Pass 6 — writing audit (evidence correction, no changes needed)
+Read every readable, clue, and tracker line intending to polish; found them
+strong ("The number is the point, not the moss", "the way you cover a fire you
+intend to come back to"). Baseline content score was set on thin evidence.
+Content 6 → **7** (correction). **Overall 6.3.**
+
+## Standing of the loop
+
+6.3, with the ceilings stated in pass 5: the next points live behind (a) the
+device pass and feel tuning (feel, performance), (b) the played gates (anything
+above ~8 is the hook test's to award, not this scorecard's), and (c) art beyond
+procedural primitives if visual is to pass ~7. The loop resumes the moment any
+of that evidence lands — the scorecard only moves on evidence, in both
+directions, and 10 is reachable only through the same human gates the release
+plan already names.
