@@ -82,7 +82,11 @@ namespace HiddenValley.Unity
             bool grounded = _playerSource == null || _playerSource.IsGrounded;
             if (_playerSource != null)
             {
-                if (!_wasGrounded && grounded && _prevVy < -3f) _squash = landSquash;
+                if (!_wasGrounded && grounded && _prevVy < -3f)
+                {
+                    _squash = landSquash;
+                    Haptics.Tick();
+                }
                 else if (_wasGrounded && !grounded && velocity.y > 1f) _squash = jumpStretch;
             }
             _wasGrounded = grounded;

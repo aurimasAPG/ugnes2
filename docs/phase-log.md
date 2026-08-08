@@ -441,6 +441,37 @@ Tests: **47/47.** macOS smoke: full slice boots, restores a save, spawns 32/3/1 
 33 ms. Passes run: none (smoke ≠ device pass). **Still owed by the owner: the first
 full-slice device pass** — build to phone, 10 minutes, worst frame time into this log.
 
+### 2026-08-08 — M1–M5 implemented: feel, atmosphere, world, alive layer
+
+Actor: Claude Code (`claude-fable-5`), autonomous run against `docs/release-plan.md`.
+Each milestone verified by the .NET suite (47/47) plus a macOS player build-and-boot;
+M3 and M4 additionally verified by screenshot (dawn light over the kit-built village,
+7.5 ms / 9.4 ms worst with 780 scatter instances on the Mac).
+
+- **M1 (code half):** CapsuleAnimator (lean/gait/squash/breath, runtime-attached),
+  camera sprint FOV+boom kick and travel look-ahead riding the occlusion cast,
+  gait-clocked footsteps.
+- **M3:** AtmosphereRig — gradient sky, fog==horizon, trilight ambient, four phase
+  palettes through the Core clock (sun steps per game-minute), post volume, far plane
+  140; single wet-stone palette in RuntimeArt with per-key smoothness; 14 near-white
+  detail textures (palette owns hue); deliberate shadows.
+- **M4:** layout rewritten to the bible — sunken N–S channel spine with three bridge
+  kits and the sluice on it, building kits (pitched slate roofs, kiln chimney + smoke
+  column, Coll's gear), terrain plates, path network, climb vista notch, cool/warm
+  zones, 780 seeded scatter, flowing transparent water (drowned lens visible through
+  it), ember light, and Quietday as a rendering state (grey light + eastern ashfall
+  while the mystery is open).
+- **M5:** conversation facing (both parties), NPC arrived-idles with player-aware
+  head-turn, Pip life (speed-lagged follow, wander, moth flutter that roughens with
+  Dimness, Perlin gutter, additive halo, dialogue calm), iOS haptics bridge wired to
+  interact/choice/pickup/quest/landing, dialogue punctuation pauses + world-dim +
+  panel ease + portraits, safe-area insets, toast queue paired with stings/haptics,
+  and Pip's pre-quest "restless" on-ramp pointing east before the bark is found.
+
+Passes run: **none on device** — every claim above is Mac-verified only. The owner's
+device pass covers M0–M5 in one session: play 10 minutes, record worst frame time,
+confirm haptics, walk one dawn and one dusk.
+
 ---
 
 ## What the next session should do

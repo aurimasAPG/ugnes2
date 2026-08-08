@@ -45,6 +45,17 @@
         },
         {
           "dialogue": "dlg.pip",
+          "node": "restless",
+          "when": {
+            "type": "not",
+            "of": {
+              "type": "clue_known",
+              "clue": "clue.scorched_bark"
+            }
+          }
+        },
+        {
+          "dialogue": "dlg.pip",
           "node": "idle"
         }
       ]
@@ -265,6 +276,15 @@
             "Pip is bright again, and steady, and entirely unbothered.",
             "Whatever was wrong with the light down there, it does not appear to be wrong up here."
           ]
+        },
+        {
+          "id": "restless",
+          "speaker": "npc.pip",
+          "lines": [
+            "Pip won't settle. It keeps lifting off your shoulder and drifting east, toward the stand of trees past the climb, then coming back as if to check you're following.",
+            "When you stop walking, it hangs in the air facing the shelf. The light is doing something it doesn't usually do — thinning at the edges."
+          ],
+          "goto": ""
         }
       ]
     }

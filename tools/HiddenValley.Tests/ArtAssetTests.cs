@@ -31,11 +31,20 @@ namespace HiddenValley.Tests
         [Fact]
         public void All_layout_mat_textures_exist_and_are_nonempty()
         {
-            var keys = new[] { "grey", "dark", "sand", "moss", "bark", "water", "player", "npc", "pip" };
+            // Every palette key ships a detail texture; png since the near-white detail
+            // set replaced the baked-color jpgs (M3 — palette owns the hue).
+            var keys = new[]
+            {
+                "grey", "dark", "stone", "slate", "sand", "earth", "moss", "bark",
+                "water", "ash", "lamp", "player", "npc", "pip"
+            };
             foreach (var key in keys)
             {
-                var path = Path.Combine(RepoRoot, "Assets", "HiddenValley", "Resources", "Art", "Textures", "mat_" + key + ".jpg");
-                Assert.True(File.Exists(path), "missing texture " + path);
+                var dir = Path.Combine(RepoRoot, "Assets", "HiddenValley", "Resources", "Art", "Textures");
+                var png = Path.Combine(dir, "mat_" + key + ".png");
+                var jpg = Path.Combine(dir, "mat_" + key + ".jpg");
+                var path = File.Exists(png) ? png : jpg;
+                Assert.True(File.Exists(path), "missing texture " + png + " (or .jpg)");
                 Assert.True(new FileInfo(path).Length > 1000, "texture too small: " + path);
             }
         }

@@ -102,23 +102,56 @@ namespace HiddenValley.Unity
             Debug.LogWarning($"[HiddenValley] {name}: schedule wants waypoint '{target}', which is not wired up.");
         }
 
+        /// <summary>Set for the duration of a conversation: the NPC turns to face this
+        /// and holds it. Talking to the back of a capsule reads as a bug.</summary>
+        public Transform FaceTarget { get; set; }
+
+        private Transform _player;
+
         private void Update()
         {
-            if (_destination == null) return;
-
-            Vector3 position = transform.position;
-            Vector3 target = _destination.position;
-            if ((target - position).sqrMagnitude < 0.01f) return;
-
-            transform.position = Vector3.MoveTowards(position, target, walkSpeed * Time.deltaTime);
-
-            Vector3 flat = target - position;
-            flat.y = 0;
-            if (flat.sqrMagnitude > 0.01f)
+            // Conversation facing wins over everything, including the schedule.
+            if (FaceTarget != null)
             {
-                transform.rotation = Quaternion.RotateTowards(
-                    transform.rotation, Quaternion.LookRotation(flat), 360f * Time.deltaTime);
+                FaceToward(FaceTarget.position, 360f);
+                return;
             }
+
+            if (_destination != null)
+            {
+                Vector3 position = transform.position;
+                Vector3 target = _destination.position;
+                if ((target - position).sqrMagnitude >= 0.01f)
+                {
+                    transform.position = Vector3.MoveTowards(position, target, walkSpeed * Time.deltaTime);
+                    FaceToward(target, 360f);
+                    return;
+                }
+            }
+
+            // Arrived idle: slow ambient head-turn toward a nearby player — the cheapest
+            // "this person notices you" signal, rate-capped so nobody owl-necks.
+            if (_player == null)
+            {
+                var playerGo = GameObject.FindWithTag("Player");
+                if (playerGo != null) _player = playerGo.transform;
+            }
+            if (_player != null)
+            {
+                Vector3 offset = _player.position - transform.position;
+                offset.y = 0;
+                if (offset.sqrMagnitude < 16f && offset.sqrMagnitude > 0.04f)
+                    FaceToward(_player.position, 90f);
+            }
+        }
+
+        private void FaceToward(Vector3 worldPoint, float degreesPerSecond)
+        {
+            Vector3 flat = worldPoint - transform.position;
+            flat.y = 0;
+            if (flat.sqrMagnitude < 0.01f) return;
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation, Quaternion.LookRotation(flat), degreesPerSecond * Time.deltaTime);
         }
 
         public DialogueSession BeginConversation() => _boot.Game.Dialogue.Begin(npcId);

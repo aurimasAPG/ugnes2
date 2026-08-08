@@ -52,6 +52,8 @@ namespace HiddenValley.Unity
         private int _typeChars;
         private float _typeNext;
         private const float TypeCharsPerSecond = 42f;
+        private float _panelOpenedAt;
+        private static Texture2D _dimTexture;
 
         // Revision-gated caches. OnGUI runs at least twice a frame; anything rebuilt per
         // pass was allocating ~2-6 KB/frame and buying a GC spike every half minute.
@@ -107,6 +109,7 @@ namespace HiddenValley.Unity
 
             RebuildBagCache();
             _recipeCacheStation = "\0"; // inputs/known recipes may have changed mid-panel
+            DiffForToasts();
 
             // Content asks for the crafting panel by flag (e.g. the kiln's on_interact).
             var station = _boot.Game.State.GetFlag("ui.open_crafting");
@@ -142,9 +145,63 @@ namespace HiddenValley.Unity
 
             if (_session != null && _typeChars < _typeFull.Length && Time.unscaledTime >= _typeNext)
             {
+                char typed = _typeFull[_typeChars];
                 _typeChars++;
-                _typeNext = Time.unscaledTime + 1f / TypeCharsPerSecond;
+
+                // Punctuation breathes: a beat after clause and sentence ends is 80% of
+                // what makes a typewriter read as spoken language instead of teletype.
+                float interval = 1f / TypeCharsPerSecond;
+                if (typed is '.' or '!' or '?') interval *= 5f;
+                else if (typed is ',' or ';' or '—') interval *= 2.5f;
+                _typeNext = Time.unscaledTime + interval;
             }
+
+            // Expire toasts.
+            while (_toasts.Count > 0 && Time.unscaledTime > _toasts.Peek().until)
+                _toasts.Dequeue();
+        }
+
+        // ---- toasts -----------------------------------------------------------
+
+        private readonly Queue<(string text, float until)> _toasts = new Queue<(string, float)>();
+        private int _lastClueCount = -1, _lastCompletedQuests = -1;
+        private readonly List<string> _prevTracker = new List<string>();
+
+        private void Toast(string text)
+        {
+            if (_toasts.Count > 4) _toasts.Dequeue();
+            _toasts.Enqueue((text, Time.unscaledTime + 3.2f));
+        }
+
+        /// <summary>State changes become visible beats: one moment hits ear (sting, via
+        /// GameAudio), eye (toast) and hand (haptic) on the same frame.</summary>
+        private void DiffForToasts()
+        {
+            var game = _boot.Game;
+
+            int done = 0;
+            foreach (var q in game.State.Quests.Values)
+                if (q.State == QuestState.Completed) done++;
+            if (_lastCompletedQuests >= 0 && done > _lastCompletedQuests)
+            {
+                Toast("Quest complete");
+                Haptics.Success();
+            }
+            _lastCompletedQuests = done;
+
+            int clues = game.State.Clues.Count;
+            if (_lastClueCount >= 0 && clues > _lastClueCount)
+            {
+                Toast("Written into the account");
+                Haptics.Medium();
+            }
+            _lastClueCount = clues;
+
+            foreach (var line in _trackerCache)
+                if (!_prevTracker.Contains(line))
+                    Toast(line);
+            _prevTracker.Clear();
+            _prevTracker.AddRange(_trackerCache);
         }
 
         private void RefreshNpcs()
@@ -187,6 +244,7 @@ namespace HiddenValley.Unity
             {
                 var binder = interaction.Current;
                 GameAudio.Instance?.Interact();
+                Haptics.Light();
                 if (binder.Interact() && !string.IsNullOrEmpty(binder.Text))
                 {
                     _readableTitle = binder.Label;
@@ -240,12 +298,31 @@ namespace HiddenValley.Unity
 
         // ---- dialogue ---------------------------------------------------------
 
+        private NpcBinder _talkingNpc;
+        private PipCompanion _pip;
+
         private void BeginTalk(NpcBinder npc)
         {
             var session = npc.BeginConversation();
             if (session == null || session.Finished) return;
             _session = session;
             _lineIndex = 0;
+            _panelOpenedAt = Time.unscaledTime;
+
+            // Both parties turn to face each other; Pip settles to a calm hover.
+            _talkingNpc = npc;
+            npc.FaceTarget = player;
+            if (player != null)
+            {
+                Vector3 flat = npc.transform.position - player.position;
+                flat.y = 0;
+                if (flat.sqrMagnitude > 0.01f)
+                    player.rotation = Quaternion.LookRotation(flat);
+            }
+            if (_pip == null) _pip = FindFirstObjectByType<PipCompanion>();
+            if (_pip != null) _pip.Calm = true;
+
+            Haptics.Light();
             PlayDialogueLine();
         }
 
@@ -282,6 +359,7 @@ namespace HiddenValley.Unity
 
         private void Choose(int index)
         {
+            Haptics.Light();
             GameAudio.Instance?.UiClick();
             GameAudio.Instance?.StopDialogueVoice();
             _boot.Game.Dialogue.Choose(_session, index);
@@ -295,6 +373,9 @@ namespace HiddenValley.Unity
             _session = null;
             _typeFull = "";
             _typeChars = 0;
+            if (_talkingNpc != null) _talkingNpc.FaceTarget = null;
+            _talkingNpc = null;
+            if (_pip != null) _pip.Calm = false;
             GameAudio.Instance?.StopDialogueVoice();
         }
 
@@ -353,6 +434,13 @@ namespace HiddenValley.Unity
 
             float w = Screen.width, h = Screen.height;
 
+            // Respect the notch: everything anchored to the top shifts below the safe
+            // area; landscape phones put the clock straight under the sensor housing.
+            var safe = Screen.safeArea;
+            GUI.BeginGroup(new Rect(safe.x, h - safe.yMax, safe.width, safe.height));
+            w = safe.width;
+            h = safe.height;
+
             DrawClockAndTracker(w, h);
             DrawToggles(w, h);
 
@@ -362,6 +450,30 @@ namespace HiddenValley.Unity
             else if (_bagOpen) DrawBag(w, h);
             else if (_accountOpen) DrawAccount(w, h);
             else DrawPrompt(w, h);
+
+            DrawToasts(w, h);
+            GUI.EndGroup();
+        }
+
+        private void DrawToasts(float w, float h)
+        {
+            if (_toasts.Count == 0) return;
+
+            float y = h * 0.10f;
+            foreach (var toast in _toasts)
+            {
+                float life = toast.until - Time.unscaledTime;
+                float alpha = Mathf.Clamp01(life / 0.4f); // fade the last 0.4 s
+                var prev = GUI.color;
+                GUI.color = new Color(1, 1, 1, alpha);
+
+                var rect = new Rect(w * 0.28f, y, w * 0.44f, h * 0.065f);
+                GUI.Box(rect, GUIContent.none);
+                GUI.Label(rect, toast.text, _prompt);
+
+                GUI.color = prev;
+                y += h * 0.075f;
+            }
         }
 
         private void DrawClockAndTracker(float w, float h)
@@ -482,8 +594,33 @@ namespace HiddenValley.Unity
             var node = _session.Node;
             if (node == null) { _session = null; return; }
 
-            var panel = new Rect(w * 0.08f, h * 0.62f, w * 0.84f, h * 0.34f);
+            // Dialogue is a mode: dim the world behind it.
+            if (_dimTexture == null)
+            {
+                _dimTexture = new Texture2D(1, 1);
+                _dimTexture.SetPixel(0, 0, new Color(0, 0, 0, 0.45f));
+                _dimTexture.Apply();
+            }
+            GUI.DrawTexture(new Rect(0, 0, w, h), _dimTexture);
+
+            // Ease the panel up over ~0.12 s when it opens.
+            float ease = Mathf.Clamp01((Time.unscaledTime - _panelOpenedAt) / 0.12f);
+            float slide = (1f - ease * ease) * h * 0.06f;
+
+            var panel = new Rect(w * 0.08f, h * 0.62f + slide, w * 0.84f, h * 0.34f);
             GUI.Box(panel, GUIContent.none);
+
+            // Portrait beside the speaker name when art exists.
+            string portraitKey = node.Speaker != null && node.Speaker.StartsWith("npc.")
+                ? node.Speaker.Substring(4) : node.Speaker;
+            var portrait = RuntimeArt.Character(portraitKey);
+            if (portrait != null)
+            {
+                float side = h * 0.16f;
+                GUI.DrawTexture(
+                    new Rect(panel.x + w * 0.012f, panel.y - side * 0.55f, side, side),
+                    portrait, ScaleMode.ScaleToFit);
+            }
 
             var inner = new Rect(panel.x + w * 0.02f, panel.y + h * 0.02f,
                                  panel.width - w * 0.04f, panel.height - h * 0.04f);
