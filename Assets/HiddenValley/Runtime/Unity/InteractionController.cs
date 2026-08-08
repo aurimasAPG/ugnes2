@@ -82,6 +82,9 @@ namespace HiddenValley.Unity
         [SerializeField] private WorldObjectBinder binder;
         [SerializeField] private string playerTag = "Player";
 
+        /// <summary>Runtime wiring for <see cref="LayoutSpawner"/>.</summary>
+        public void Configure(WorldObjectBinder target) => binder = target;
+
         private void Reset()
         {
             binder = GetComponentInParent<WorldObjectBinder>();

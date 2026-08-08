@@ -4,8 +4,7 @@
     "references": [
         "HiddenValley.Core",
         "HiddenValley.Unity",
-        "Unity.RenderPipelines.Universal.Runtime",
-        "Unity.AI.Navigation"
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [ "Editor" ],
     "excludePlatforms": [],

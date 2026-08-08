@@ -49,6 +49,7 @@ namespace HiddenValley.Unity
 
             try
             {
+                Debug.Log($"[HiddenValley] Loading content from {ContentPath}");
                 var content = ContentDatabase.LoadFromDirectory(ContentPath);
 
                 if (validateOnLoad)
@@ -59,6 +60,10 @@ namespace HiddenValley.Unity
                 }
 
                 Game = Game.NewGame(content);
+                Debug.Log(
+                    $"[HiddenValley] Content ready: " +
+                    $"{content.Npcs.Count} npcs, {content.Quests.Count} quests, " +
+                    $"{content.WorldObjects.Count} world objects.");
             }
             catch (ContentException e)
             {

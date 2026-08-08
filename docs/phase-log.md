@@ -366,11 +366,42 @@ NavMesh bake was the single poison: a batch-generated scene saved with baked
 NavMeshData produces a level0 the iOS player rejects, whether the data is an asset
 or not.
 
-**Permanent fix:** `RuntimeNavMesh` — the scene ships with an unbaked
-`NavMeshSurface`, and the mesh is built on device at scene start, before the NPC
-binders wake (execution order −900). One-time cost well under a second for a world
-this size, logged by the component. The editor bake is deleted, not conditionally
-kept: a code path that corrupts builds does not deserve a flag.
+**Permanent fix (revised, same session):** the NavMesh-only story was incomplete.
+Further Mac-player bisection showed:
+
+| Scene profile | Result |
+|---|---|
+| Greybox | ALIVE |
+| Heartwood shell (blocks + player + systems) | ALIVE |
+| shell + world objects only | ALIVE |
+| shell + NPCs only | ALIVE |
+| shell + Pip only | ALIVE |
+| any **pair** of (wo, npc, pip) | ALIVE |
+| **full** (wo + npc + pip all serialized) | **DEAD** — level0 corrupt |
+
+So the poison is not a single component type: packing the full Heartwood object set
+into one scene produces a bad level0. NavMesh made it worse earlier; the full village
+does it alone.
+
+**Permanent fix (final):**
+
+1. **No NavMesh in the shipped scene** — NPCs walk straight to schedule waypoints
+   (`NpcBinder` direct motion). Grey-box fidelity does not need obstacle avoidance.
+2. **Runtime layout spawn** — `LayoutSpawner` reads
+   `StreamingAssets/Layout/heartwood.json` at Awake (−950) and spawns world objects,
+   NPCs and Pip in code. The serialized scene stays at the known-good shell size
+   (static blocks + player + camera + controls + bootstrap). Data-driven property
+   preserved: moving content is still a JSON edit, zero C#.
+3. **GameHud** attaches at runtime from `TouchControls.Start` (not scene-serialized).
+
+**Mac end-to-end verified 2026-08-07:**
+
+- `tools/build-mac.sh` → `~/Library/Caches/HiddenValleyBuild/mac/HiddenValley.app`
+- Process alive 12+ s (no level0 crash)
+- Player.log: content ready (4 npcs, 8 quests, 32 world objects); layout spawn
+  `wo=32 npc=3 pip=True` in 5 ms
+- boot-marker written under Application Support
+- Controls: WASD, Space (context/jump), Shift sprint, Bag/Account IMGUI
 
 Trust-on-uninstall note for future sessions: uninstalling the app resets the
 developer-profile trust on the phone; reinstalling over the top does not.
@@ -379,21 +410,12 @@ developer-profile trust on the phone; reinstalling over the top does not.
 
 ## What the next session should do
 
-In priority order, and none of it is guesswork:
+1. **Play the Mac build** — walk Heartwood, talk to Vesk/Coll/Orrel/Pip, pick up an
+   item, open Bag/Account. Confirm feel before Phase 1 tuning.
+   `open ~/Library/Caches/HiddenValleyBuild/mac/HiddenValley.app`
+2. **Phase 1 on Mac first** (faster loop than device), then re-run `tools/build-ios.sh`
+   with the runtime-layout scene and clear the device pass.
+3. **Answer `[CONFIRM]` #5 and #8.** Art pipeline gates Phase 3; the title gates naming.
+4. Grey-box interest-density walk with a stopwatch before any art.
 
-1. **Owner: the three user-only steps in B1** — sign into Unity Hub, plug in the
-   iPhone, sign into Xcode. Ten minutes of clicking, and everything below unblocks.
-2. **Compile.** `Unity -quit -batchmode -projectPath . -executeMethod
-   HiddenValley.Editor.ProjectSetup.All` — first compile of the whole Unity layer,
-   then URP + scene generation in one shot. Expect package reconciliation and some
-   API drift; fix until the command exits clean.
-3. **Run `tools/build-ios.sh` and clear the Phase 0 gate** — or find out the build loop
-   is slow, which is exactly what that gate exists to surface early.
-4. **Then Phase 1, and do not skip it.** The grey-box room already contains the
-   adversarial furniture (alcove, corridor, ramp, steps); hand the phone to two people.
-5. **Answer `[CONFIRM]` #5 and #8.** Art pipeline gates Phase 3 scoping; the title
-   gates everything downstream of a name.
-
-Grey-box the village-plus-forest layout and walk it for interest density **before** any
-art exists. Interest density is a layout property, and re-laying-out a finished scene is
-where projects die.
+Rebuild Mac: `tools/build-mac.sh`. Rebuild iOS: `TEAM_ID=32U8KR34UT tools/build-ios.sh`.

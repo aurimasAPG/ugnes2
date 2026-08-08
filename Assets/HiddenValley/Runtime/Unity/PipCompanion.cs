@@ -40,6 +40,13 @@ namespace HiddenValley.Unity
         /// <summary>0 = bright and steady, 1 = as dim as Pip gets. Read by audio and VFX.</summary>
         public float Dimness => _dimness;
 
+        /// <summary>Runtime wiring for <see cref="LayoutSpawner"/>.</summary>
+        public void Configure(Transform followTarget, Light lampLight)
+        {
+            follow = followTarget;
+            lamp = lampLight;
+        }
+
         private void LateUpdate()
         {
             if (follow != null)

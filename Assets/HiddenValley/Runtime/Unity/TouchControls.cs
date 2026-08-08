@@ -50,6 +50,16 @@ namespace HiddenValley.Unity
         private float _rightHeld;
         private Vector2 _rightStart;
 
+        private void Start()
+        {
+            // HUD is attached at runtime so VillageSetup never serializes a GameHud into
+            // the scene. Wire InteractionController + player by finding them once.
+            GameAudio.EnsureExists();
+            var interaction = FindFirstObjectByType<InteractionController>();
+            var playerGo = GameObject.FindGameObjectWithTag("Player");
+            GameHud.SpawnOn(this, interaction, playerGo != null ? playerGo.transform : null);
+        }
+
         /// <summary>Jump is an event, not a state — consuming it clears it, so one tap is one jump.</summary>
         public bool ConsumeJump()
         {
@@ -149,10 +159,19 @@ namespace HiddenValley.Unity
 #if UNITY_EDITOR || UNITY_STANDALONE
         private void ReadDesktopFallback()
         {
+            // Always assign Move from keys — including zero. The old path only wrote when
+            // keys were down, so releasing WASD left Move stuck and the player never stopped.
             var keys = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-            if (keys.sqrMagnitude > 0.01f) Move = Vector2.ClampMagnitude(keys, 1f);
+            if (keys.sqrMagnitude > 0.01f)
+                Move = Vector2.ClampMagnitude(keys, 1f);
+            else if (_stickFinger < 0)
+                Move = Vector2.zero;
+
             if (Input.GetKeyDown(KeyCode.Space)) Tap();
-            if (Input.GetKey(KeyCode.LeftShift)) Sprint = true;
+            // Sprint is held-state: set true while shift is down, clear when released
+            // (unless a right-half touch is already sprinting).
+            if (_rightFinger < 0)
+                Sprint = Input.GetKey(KeyCode.LeftShift);
         }
 #endif
 

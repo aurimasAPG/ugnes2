@@ -247,7 +247,30 @@ namespace HiddenValley.Editor
                 material = new UnityEngine.Material(Shader.Find("Universal Render Pipeline/Lit"));
                 AssetDatabase.CreateAsset(material, path);
             }
-            material.color = color;
+
+            // Prefer generated albedo textures under Resources/Art/Textures (mat_<key>.jpg).
+            // Path is like Assets/HiddenValley/Settings/Mat_grey.mat → key "grey".
+            string file = System.IO.Path.GetFileNameWithoutExtension(path);
+            string key = file.StartsWith("Mat_") ? file.Substring(4).ToLowerInvariant()
+                : file == "PlayerGrey" ? "player"
+                : file == "Greybox" ? "grey"
+                : file == "GreyboxDark" ? "dark"
+                : file.ToLowerInvariant();
+            var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(
+                $"Assets/HiddenValley/Resources/Art/Textures/mat_{key}.jpg");
+            if (tex != null)
+            {
+                material.mainTexture = tex;
+                if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", tex);
+                material.color = Color.white;
+                if (material.HasProperty("_BaseColor")) material.SetColor("_BaseColor", Color.white);
+            }
+            else
+            {
+                material.color = color;
+            }
+
+            EditorUtility.SetDirty(material);
             return material;
         }
 

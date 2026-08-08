@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # HIDDEN VALLEY — MISSION
 
 This file is the mission. The operating rules it refers to live in
@@ -79,3 +83,67 @@ than inventing answers, and stop only at a gate failure or a true blocker.
   and derivativeness pass gets an entry in the phase log with its measurements.
 - **Scope ceiling is binding.** One village, one forest, one companion, 3 NPCs,
   8 quests, 1 puzzle chain, 1 mystery thread. Nothing else.
+
+---
+
+## Commands
+
+```bash
+# Tests — 43 xunit tests over Core + shipped content, incl. a full scripted playthrough.
+# No Unity needed. dotnet may be user-local at ~/.dotnet/dotnet.
+dotnet test tools/HiddenValley.Tests
+
+# One-line device build (the Phase 0 gate; times itself against the 600 s budget).
+# Env: UNITY_BIN (editor binary), TEAM_ID, DEVICE (udid). Uses devicectl-era ios-deploy
+# only for install; debugging via ios-deploy is obsolete on iOS 17+ — use:
+#   xcrun devicectl device install app --device <udid> <path.app>
+#   xcrun devicectl device process launch --console --device <udid> <bundle-id>
+tools/build-ios.sh
+
+# Phase 2 gate: proves adding NPC #4 changed zero runtime C#.
+tools/phase2-gate.sh
+
+# Headless editor commands (Unity at /Applications/Unity/Hub/Editor/<ver>/Unity.app/Contents/MacOS/Unity):
+Unity -quit -batchmode -projectPath . -executeMethod HiddenValley.Editor.ProjectSetup.All          # URP + player settings + both scenes
+Unity -quit -batchmode -projectPath . -executeMethod HiddenValley.Editor.VillageSetup.GenerateHeartwood
+Unity -quit -batchmode -projectPath . -executeMethod HiddenValley.Editor.BuildCommand.iOS           # respects HV_BUILD_DIR
+Unity -quit -batchmode -projectPath . -executeMethod HiddenValley.Editor.BuildCommand.macOS         # debug player; HV_MAC_BUILD_DIR
+```
+
+## Architecture
+
+Three assemblies, strictly layered:
+
+- **`Runtime/Core`** — the whole game as plain C# (`noEngineReferences: true`). A closed
+  condition/effect vocabulary interpreted by generic engines (quests, dialogue, crafting,
+  world state, clock, save). There are no per-content types — a new NPC is data, never a
+  class — and that property IS the Phase 2 gate. Testable on any machine with .NET.
+- **`Runtime/Unity`** — MonoBehaviour views onto Core. Change notification is one int:
+  views poll `GameState.Revision` per frame. `GameBootstrap` owns the `Game`;
+  `LayoutSpawner` instantiates world objects/NPCs/Pip at runtime; binders mirror state.
+- **`Editor`** — headless generators. Scenes are *generated, never hand-authored*:
+  `ProjectSetup` (config + grey-box room), `VillageSetup` (Heartwood shell from layout).
+
+Data lives in `Assets/StreamingAssets/`: `Content/*.json` decides WHAT exists (NPCs,
+quests, items, clues, dialogue — validated by `ContentValidator` before every build);
+`Layout/heartwood.json` decides WHERE (geometry, spawns, waypoints). Moving or adding
+content is a JSON edit. `docs/systems-README.md` is the authoring guide.
+
+## Landmines (each cost real debugging time — do not rediscover them)
+
+1. **The packed-scene corruption (Unity 6000.0.81f1).** A generated scene serialized with
+   the full object population packs into a `level0` the player rejects ("corrupted",
+   "Position out of bounds") on iOS *and* macOS. The scene must stay a minimal shell —
+   static blocks, player, camera, controls, bootstrap — and everything else spawns at
+   runtime via `LayoutSpawner`. Never add binders, NPCs, the HUD, or any
+   `NavMeshSurface` (baked or not) to a serialized scene. After any change to what a
+   scene contains, smoke-test with `BuildCommand.macOS` + launch before touching a device.
+2. **No NavMesh anywhere.** NPCs walk waypoints directly (`NpcBinder.Update`).
+3. **`GameHud` is code-spawned** (from `TouchControls.Start`), never scene-serialized.
+4. **Builds go outside the repo** (`~/Library/Caches/HiddenValleyBuild`, via
+   `HV_BUILD_ROOT`). The repo sits in iCloud-synced `~/Documents`; the file provider
+   re-tags outputs with Finder metadata and codesign rejects them ("detritus").
+5. **Never uninstall the app from the phone to "clean up"** — it resets the developer
+   trust and someone has to re-trust in Settings. Install over the top.
+6. IMGUI + legacy `Input` everywhere by design (input handler is set to "Both");
+   grey-box builds need no canvas, prefabs, or font assets.

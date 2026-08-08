@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json.Linq;
-using Unity.AI.Navigation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.AI;
 using HiddenValley.Unity;
 
 namespace HiddenValley.Editor
@@ -23,9 +21,9 @@ namespace HiddenValley.Editor
     /// re-run — the scene file itself is never authored by hand and can always be deleted.
     ///
     /// Everything the binders need is wired here: each world object id gets geometry, an
-    /// interaction zone and a WorldObjectBinder; each NPC gets a NavMeshAgent, its schedule
-    /// waypoints and an NpcBinder; the NavMesh is baked at the end. Player, Pip, camera,
-    /// controls and the HUD ride along so the scene is playable the moment it exists.
+    /// interaction zone and a WorldObjectBinder; each NPC gets schedule waypoints and an
+    /// NpcBinder (direct walk, no NavMesh — see phase log 2026-08-07). Player, Pip, camera
+    /// and controls ride along; GameHud spawns at runtime from TouchControls.
     /// </summary>
     public static class VillageSetup
     {
@@ -57,11 +55,11 @@ namespace HiddenValley.Editor
             var layout = JObject.Parse(File.ReadAllText(LayoutPath));
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
+            // Static geometry only. World objects, NPCs and Pip are spawned at runtime by
+            // LayoutSpawner from StreamingAssets/Layout/heartwood.json — packing them into
+            // the scene produces a corrupted level0 (full-combination bisect, 2026-08-07).
             foreach (var block in layout["blocks"] ?? new JArray())
                 Primitive((JObject)block, ((JObject)block)["name"]?.Value<string>() ?? "Block");
-
-            foreach (var jt in layout["worldObjects"] ?? new JArray())
-                WorldObject((JObject)jt);
 
             // Light — same single-sun rig as the grey-box room.
             var sunGo = new GameObject("Sun");
@@ -74,19 +72,12 @@ namespace HiddenValley.Editor
 
             var player = Player(Position(layout["player"]?["pos"]));
             var cameraGo = CameraRig(player);
-            var controls = Systems(player, cameraGo);
-            Pip(layout, player);
+            Systems(player, cameraGo);
 
-            foreach (var jn in layout["npcs"] ?? new JArray())
-                Npc((JObject)jn);
-
-            // The NavMesh is built at runtime by RuntimeNavMesh. An editor-time bake
-            // corrupts the packed scene on iOS — see phase log, 2026-08-07.
-            var navGo = new GameObject("NavMesh") { isStatic = true };
-            var navSurface = navGo.AddComponent<NavMeshSurface>();
-            navSurface.collectObjects = CollectObjects.All;
-            navSurface.layerMask = ~(1 << ActorLayer);
-            navGo.AddComponent<RuntimeNavMesh>();
+            // Deliberately NO NavMesh anywhere: a scene containing a NavMeshSurface —
+            // baked or unbaked — packs into a level0 the iOS player rejects as
+            // corrupted (bisection, 2026-08-07). NPCs walk their waypoints directly;
+            // see NpcBinder.Update.
 
             EditorSceneManager.SaveScene(scene, ScenePath);
 
@@ -179,16 +170,9 @@ namespace HiddenValley.Editor
             visual.GetComponent<MeshRenderer>().sharedMaterial = ProjectSetup.Material(
                 $"{SettingsDir}/Mat_npc.mat", new Color(0.62f, 0.55f, 0.72f));
 
-            var agent = root.AddComponent<NavMeshAgent>();
-            agent.radius = 0.35f;
-            agent.height = 1.8f;
-            agent.speed = 2.2f;
-            agent.angularSpeed = 300f;
-
             var binder = root.AddComponent<NpcBinder>();
             var serialized = new SerializedObject(binder);
             serialized.FindProperty("npcId").stringValue = id;
-            serialized.FindProperty("agent").objectReferenceValue = agent;
 
             var waypoints = (JObject)spec["waypoints"] ?? new JObject();
             var waypointRoot = GameObject.Find("Waypoints") ?? new GameObject("Waypoints");
@@ -275,6 +259,9 @@ namespace HiddenValley.Editor
             nose.GetComponent<MeshRenderer>().sharedMaterial = ProjectSetup.Material(
                 $"{SettingsDir}/GreyboxDark.mat", new Color(0.35f, 0.35f, 0.38f));
 
+            // Portrait is attached at runtime (Resources textures are not serialised here).
+            player.AddComponent<PlayerPortrait>();
+
             return player;
         }
 
@@ -301,6 +288,9 @@ namespace HiddenValley.Editor
             var bootstrap = new GameObject("GameBootstrap");
             bootstrap.AddComponent<GameBootstrap>();
 
+            var spawner = bootstrap.AddComponent<LayoutSpawner>();
+            ProjectSetup.Bind(spawner, "player", player.transform);
+
             var pc = player.AddComponent<PlayerController>();
             ProjectSetup.Bind(pc, "controls", controls);
             ProjectSetup.Bind(pc, "cameraTransform", cameraGo.transform);
@@ -308,10 +298,8 @@ namespace HiddenValley.Editor
             var interaction = player.AddComponent<InteractionController>();
             ProjectSetup.Bind(interaction, "player", player.transform);
 
-            var hud = controlsGo.AddComponent<GameHud>();
-            ProjectSetup.Bind(hud, "controls", controls);
-            ProjectSetup.Bind(hud, "interaction", interaction);
-            ProjectSetup.Bind(hud, "player", player.transform);
+            // GameHud attaches at runtime from TouchControls.Start so regenerating the
+            // scene never depends on serializing HUD state into the scene file.
 
             return controls;
         }

@@ -1,7 +1,7 @@
 {
     "name": "HiddenValley.Unity",
     "rootNamespace": "HiddenValley.Unity",
-    "references": [ "HiddenValley.Core", "Unity.AI.Navigation" ],
+    "references": [ "HiddenValley.Core" ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

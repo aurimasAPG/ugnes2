@@ -1,0 +1,114 @@
+{
+  "_comment": "Grey-box layout for the whole slice: Heartwood village (y=0), the climb (y 0..6), the Ash Shelf (y=6), and the lower shelf (y=3). Edited with the same rule as all content: changing WHERE something is must never require C#. Distances are tuned for the interest-density walk: walk speed is 4.5 m/s, the 40-second rule is 180 m, and no leg here is longer than ~30 m without a landmark or an interactable.",
+
+  "player": { "pos": [0, 0.2, -8] },
+  "pip":    { "pos": [-1, 1.8, -7] },
+
+  "blocks": [
+    { "name": "Ground.Village",  "mat": "grey",  "pos": [0, -0.5, 0],     "size": [64, 1, 60] },
+    { "name": "Plaza",           "mat": "sand",  "pos": [0, 0.05, -4],    "size": [14, 0.1, 10] },
+    { "name": "Well",            "mat": "dark",  "shape": "cylinder",     "pos": [0, 0.8, -4], "size": [1.6, 0.8, 1.6] },
+
+    { "name": "Sluice.Channel",  "mat": "water", "pos": [-6, -0.1, 4],    "size": [44, 0.25, 3] },
+
+    { "name": "House.Vesk",      "mat": "dark",  "pos": [-18, 2, -8],     "size": [8, 4, 7] },
+    { "name": "House.Orrel",     "mat": "dark",  "pos": [15, 2.5, 11],    "size": [9, 5, 8] },
+    { "name": "Shed.Coll",       "mat": "dark",  "pos": [5, 1.75, 19],    "size": [6, 3.5, 5] },
+    { "name": "Hut.Player",      "mat": "dark",  "pos": [16, 1.75, -13],  "size": [6, 3.5, 5] },
+    { "name": "Cottage.A",       "mat": "dark",  "pos": [-8, 1.75, 15],   "size": [6, 3.5, 5] },
+    { "name": "Cottage.B",       "mat": "dark",  "pos": [-21, 1.75, 9],   "size": [6, 3.5, 5] },
+
+    { "name": "Fence.S",         "mat": "dark",  "pos": [0, 1, -29],      "size": [64, 2, 1] },
+    { "name": "Fence.E",         "mat": "dark",  "pos": [31.5, 1, 0],     "size": [1, 2, 60] },
+    { "name": "Fence.W",         "mat": "dark",  "pos": [-31.5, 1, 0],    "size": [1, 2, 60] },
+    { "name": "Fence.NE",        "mat": "dark",  "pos": [18, 1, 29.5],    "size": [28, 2, 1] },
+    { "name": "Fence.NW",        "mat": "dark",  "pos": [-18, 1, 29.5],   "size": [28, 2, 1] },
+
+    { "name": "Climb.RampA",     "mat": "grey",  "pos": [0, 1.5, 37],     "size": [6, 0.5, 15], "rot": [-13, 0, 0] },
+    { "name": "Climb.Landing",   "mat": "grey",  "pos": [0, 3.0, 45.5],   "size": [8, 0.6, 4] },
+    { "name": "Climb.RampB",     "mat": "grey",  "pos": [0, 4.6, 52],     "size": [6, 0.5, 15], "rot": [-13, 0, 0] },
+    { "name": "Climb.CliffE",    "mat": "dark",  "pos": [8, 3, 43],       "size": [8, 8, 30] },
+    { "name": "Climb.CliffW",    "mat": "dark",  "pos": [-8, 3, 43],      "size": [8, 8, 30] },
+    { "name": "Tree.Landing",    "mat": "bark",  "shape": "cylinder",     "pos": [4.5, 5.3, 45.5], "size": [0.6, 2.5, 0.6] },
+
+    { "name": "Ground.Shelf",    "mat": "grey",  "pos": [0, 5.5, 82],     "size": [66, 1, 54] },
+    { "name": "Shelf.CliffBackE","mat": "dark",  "pos": [22, 8, 57],      "size": [24, 6, 2] },
+    { "name": "Shelf.CliffBackW","mat": "dark",  "pos": [-22, 8, 57],     "size": [24, 6, 2] },
+    { "name": "Shelf.CliffN",    "mat": "dark",  "pos": [0, 8, 109.5],    "size": [66, 6, 1] },
+    { "name": "Shelf.CliffW",    "mat": "dark",  "pos": [-33.5, 8, 82],   "size": [1, 6, 54] },
+    { "name": "Shelf.CliffE",    "mat": "dark",  "pos": [33.5, 8, 76],    "size": [1, 6, 42] },
+
+    { "name": "Pool.Basin",      "mat": "dark",  "pos": [0, 5.6, 78],     "size": [12, 0.3, 12] },
+
+    { "name": "Tree.1",          "mat": "bark",  "shape": "cylinder", "pos": [14, 9, 64],   "size": [0.6, 3, 0.6] },
+    { "name": "Tree.2",          "mat": "bark",  "shape": "cylinder", "pos": [-10, 9, 66],  "size": [0.6, 3, 0.6] },
+    { "name": "Tree.3",          "mat": "bark",  "shape": "cylinder", "pos": [12, 9, 83],   "size": [0.6, 3, 0.6] },
+    { "name": "Tree.4",          "mat": "bark",  "shape": "cylinder", "pos": [-20, 9, 84],  "size": [0.6, 3, 0.6] },
+    { "name": "Tree.5",          "mat": "bark",  "shape": "cylinder", "pos": [22, 9, 96],   "size": [0.6, 3, 0.6] },
+    { "name": "Tree.6",          "mat": "bark",  "shape": "cylinder", "pos": [-6, 9, 100],  "size": [0.6, 3, 0.6] },
+    { "name": "Tree.7",          "mat": "bark",  "shape": "cylinder", "pos": [-27, 9, 72],  "size": [0.6, 3, 0.6] },
+
+    { "name": "Descent.Ramp",    "mat": "grey",  "pos": [13, 4.5, 91],    "size": [4, 0.5, 16], "rot": [-11, 140, 0] },
+    { "name": "Ground.Lower",    "mat": "grey",  "pos": [30, 2.5, 106],   "size": [28, 1, 20] },
+    { "name": "Lower.CliffS",    "mat": "dark",  "pos": [30, 5, 95.5],    "size": [28, 4, 1] },
+    { "name": "Lower.CliffE",    "mat": "dark",  "pos": [44.5, 5, 106],   "size": [1, 4, 20] }
+  ],
+
+  "worldObjects": [
+    { "id": "world.head_gate",       "pos": [-27, 0.9, 4],    "size": [1.2, 1.8, 1.2], "mat": "bark" },
+    { "id": "world.gate_a",          "pos": [-17, 0.8, 4],    "size": [0.8, 1.6, 2.6], "mat": "bark", "blocking": true },
+    { "id": "world.gate_b",          "pos": [-8, 0.8, 4],     "size": [0.8, 1.6, 2.6], "mat": "bark", "blocking": true },
+    { "id": "world.gate_c",          "pos": [1, 0.8, 4],      "size": [0.8, 1.6, 2.6], "mat": "bark", "blocking": true },
+    { "id": "world.grate",           "pos": [9, 0.8, 4],      "size": [0.4, 1.6, 2.8], "mat": "dark" },
+    { "id": "world.grate_debris",    "pos": [9.8, 0.6, 4],    "size": [1.4, 1.2, 2.4], "mat": "dark" },
+    { "id": "world.setting_plate",   "pos": [11.5, 0.5, 6],   "size": [1.2, 1.0, 0.3], "mat": "sand" },
+
+    { "id": "world.kiln_station",    "pos": [-14, 1.1, -13],  "size": [2.2, 2.2, 2.2], "shape": "cylinder", "mat": "bark" },
+    { "id": "world.bed",             "pos": [15, 0.4, -11.5], "size": [1.2, 0.5, 2.2], "mat": "sand" },
+    { "id": "world.bench_dusk",      "pos": [4, 0.4, -9],     "size": [1.8, 0.5, 0.7], "mat": "bark" },
+    { "id": "world.handcart",        "pos": [11, 0.7, -2],    "size": [1.6, 1.0, 2.4], "mat": "bark" },
+    { "id": "world.trade_post",      "pos": [19, 1.2, 7],     "size": [3.0, 2.4, 2.0], "mat": "moss" },
+
+    { "id": "world.sand_1",          "pos": [-24, 0.4, 1],    "size": [0.7, 0.4, 0.7], "mat": "sand", "solid": false },
+    { "id": "world.sand_2",          "pos": [-9, 0.4, 1.5],   "size": [0.7, 0.4, 0.7], "mat": "sand", "solid": false },
+    { "id": "world.sand_3",          "pos": [3, 0.4, 8],      "size": [0.7, 0.4, 0.7], "mat": "sand", "solid": false },
+    { "id": "world.sunmoss_3",       "pos": [-3, 0.3, 17],    "size": [1.2, 0.25, 1.2], "mat": "moss", "solid": false },
+
+    { "id": "world.cart_stand",      "pos": [5, 6.5, 62],     "size": [2.4, 0.8, 2.4], "mat": "bark" },
+    { "id": "world.resin_1",         "pos": [4.5, 4.0, 45],   "size": [0.5, 0.5, 0.5], "shape": "sphere", "mat": "sand", "solid": false },
+    { "id": "world.resin_2",         "pos": [-19.5, 6.6, 83.5],"size": [0.5, 0.5, 0.5], "shape": "sphere", "mat": "sand", "solid": false },
+
+    { "id": "world.pool_water",      "pos": [0, 6.2, 78],     "size": [11.5, 1.1, 11.5], "mat": "water", "blocking": true },
+    { "id": "world.drowned_lens",    "pos": [0, 5.9, 80],     "size": [0.5, 0.5, 0.5], "shape": "sphere", "mat": "moss", "solid": false },
+
+    { "id": "world.moss_patch_dawn", "pos": [-18, 6.2, 70],   "size": [2.6, 0.15, 2.6], "mat": "moss" },
+    { "id": "world.moss_patch_dusk", "pos": [-14, 6.2, 88],   "size": [2.6, 0.15, 2.6], "mat": "moss" },
+
+    { "id": "world.sunmoss_1",       "pos": [20, 6.3, 65],    "size": [1.2, 0.25, 1.2], "mat": "moss", "solid": false },
+    { "id": "world.sunmoss_2",       "pos": [-25, 6.3, 95],   "size": [1.2, 0.25, 1.2], "mat": "moss", "solid": false },
+    { "id": "world.sunmoss_4",       "pos": [28, 6.3, 90],    "size": [1.2, 0.25, 1.2], "mat": "moss", "solid": false },
+
+    { "id": "world.iron_scrap",      "pos": [15, 6.4, 100],   "size": [0.8, 0.5, 0.8], "mat": "dark", "solid": false },
+    { "id": "world.sand_4",          "pos": [24, 6.4, 72],    "size": [0.7, 0.4, 0.7], "mat": "sand", "solid": false },
+    { "id": "world.sand_5",          "pos": [-28, 6.4, 80],   "size": [0.7, 0.4, 0.7], "mat": "sand", "solid": false },
+    { "id": "world.scorched_bark",   "pos": [11.6, 7.4, 82.6],"size": [0.4, 0.8, 0.4], "mat": "dark", "solid": false },
+
+    { "id": "world.second_kiln",     "pos": [30, 4.2, 105],   "size": [3.2, 3.2, 3.2], "shape": "cylinder", "mat": "bark" },
+    { "id": "world.kiln_hearth",     "pos": [34, 3.6, 108],   "size": [1.8, 1.2, 1.8], "mat": "dark" }
+  ],
+
+  "npcs": [
+    {
+      "id": "npc.vesk", "pos": [-15, 0.1, -8],
+      "waypoints": { "wp.kiln": [-14, 0.1, -10.5], "wp.vesk_door": [-16, 0.1, -4] }
+    },
+    {
+      "id": "npc.coll", "pos": [3, 0.1, 14],
+      "waypoints": { "wp.gear_housing": [5, 0.1, 16], "wp.coll_step": [1, 0.1, 12] }
+    },
+    {
+      "id": "npc.orrel", "pos": [14, 0.1, 7.5],
+      "waypoints": { "wp.ledger_house": [13, 0.1, 7], "wp.ledger_upstairs": [17.5, 0.1, 14] }
+    }
+  ]
+}

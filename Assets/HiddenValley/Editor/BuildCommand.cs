@@ -66,6 +66,42 @@ namespace HiddenValley.Editor
         }
 
         /// <summary>
+        /// Debug-only macOS standalone build. Exists for the level0-corruption
+        /// investigation: if the packed-scene failure reproduces in a Mac player, the
+        /// bisect loop is local and fast instead of a device round-trip per attempt.
+        /// </summary>
+        [MenuItem("Hidden Valley/Build macOS (debug)")]
+        public static void macOS()
+        {
+            ValidateContentOrThrow();
+
+            var scenes = EditorBuildSettings.scenes
+                .Where(s => s.enabled)
+                .Select(s => s.path)
+                .ToArray();
+
+            var outDir = Environment.GetEnvironmentVariable("HV_MAC_BUILD_DIR") ?? "BuildsMac";
+            Directory.CreateDirectory(outDir);
+
+            // Development build so Player.log and Debug.Log stay available while we
+            // finish making the slice playable on Mac. Drop Development once stable.
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = scenes,
+                locationPathName = Path.Combine(outDir, "HiddenValley.app"),
+                target = BuildTarget.StandaloneOSX,
+                options = BuildOptions.Development
+            });
+
+            Debug.Log(
+                $"[HiddenValley] macOS build {report.summary.result} in " +
+                $"{report.summary.totalTime.TotalSeconds:0}s → {outDir}");
+
+            if (report.summary.result != BuildResult.Succeeded)
+                throw new BuildFailedException($"macOS build {report.summary.result}.");
+        }
+
+        /// <summary>
         /// Content is authored JSON with no compiler behind it, so this is the only thing
         /// standing between a typo and a tester finding it. Runs before the expensive part.
         /// </summary>

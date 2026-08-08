@@ -17,6 +17,11 @@ namespace HiddenValley.Unity
     /// the NPC in front of you, else interacts with the object in front of you, else
     /// advances dialogue, else jumps. Choices and panel toggles are the only targets that
     /// need aimed taps, and dialogue locks movement so those taps are single-touch.
+    ///
+    /// Spawned at runtime by <see cref="SpawnOn"/> rather than serialized into the scene.
+    /// The Heartwood scene already ships without a NavMesh for the level0-corruption reason
+    /// (phase log, 2026-08-07); keeping the HUD code-only means regenerating the scene never
+    /// depends on a MonoBehaviour that was mid-bisect and deleted from Assets.
     /// </summary>
     public sealed class GameHud : MonoBehaviour
     {
@@ -38,26 +43,81 @@ namespace HiddenValley.Unity
         private bool _bagOpen;
         private bool _accountOpen;
 
+        // Typewriter for dialogue lines (presentation polish).
+        private string _typeFull = "";
+        private int _typeChars;
+        private float _typeNext;
+        private const float TypeCharsPerSecond = 42f;
+
+        /// <summary>
+        /// Attach a GameHud to <paramref name="host"/> (normally the Controls object) and
+        /// wire the three references it needs. Called from <see cref="TouchControls.Start"/>.
+        /// </summary>
+        public static GameHud SpawnOn(TouchControls controls, InteractionController interaction, Transform player)
+        {
+            if (controls == null) return null;
+            if (controls.GetComponent<GameHud>() != null) return controls.GetComponent<GameHud>();
+
+            var hud = controls.gameObject.AddComponent<GameHud>();
+            hud.controls = controls;
+            hud.interaction = interaction;
+            hud.player = player;
+            return hud;
+        }
+
         private void Start()
         {
             _boot = GameBootstrap.Instance;
-            _npcs = FindObjectsByType<NpcBinder>(FindObjectsSortMode.None);
+            RefreshNpcs();
             if (controls != null) controls.ContextAction = ContextAction;
         }
 
         private void Update()
         {
+            // NPCs/Pip are runtime-spawned; re-scan if the first Start ran empty.
+            if (_npcs.Length == 0) RefreshNpcs();
+
             if (controls != null)
                 controls.Locked = _session != null || _readableText != null || _bagOpen || _accountOpen;
+
+            if (_session != null && _typeChars < _typeFull.Length && Time.unscaledTime >= _typeNext)
+            {
+                _typeChars++;
+                _typeNext = Time.unscaledTime + 1f / TypeCharsPerSecond;
+            }
         }
+
+        private void RefreshNpcs()
+            => _npcs = FindObjectsByType<NpcBinder>(FindObjectsSortMode.None);
 
         // ---- the one button ---------------------------------------------------
 
         private bool ContextAction()
         {
-            if (_readableText != null) { _readableText = null; _readableTitle = null; return true; }
-            if (_bagOpen || _accountOpen) { _bagOpen = _accountOpen = false; return true; }
-            if (_session != null) { AdvanceDialogue(); return true; }
+            if (_readableText != null)
+            {
+                _readableText = null;
+                _readableTitle = null;
+                GameAudio.Instance?.UiClose();
+                return true;
+            }
+            if (_bagOpen || _accountOpen)
+            {
+                _bagOpen = _accountOpen = false;
+                GameAudio.Instance?.UiClose();
+                return true;
+            }
+            if (_session != null)
+            {
+                // First tap finishes typewriter; second advances.
+                if (_typeChars < _typeFull.Length)
+                {
+                    _typeChars = _typeFull.Length;
+                    return true;
+                }
+                AdvanceDialogue();
+                return true;
+            }
 
             var npc = NearestNpc();
             if (npc != null) { BeginTalk(npc); return true; }
@@ -65,10 +125,12 @@ namespace HiddenValley.Unity
             if (interaction != null && interaction.Current != null)
             {
                 var binder = interaction.Current;
+                GameAudio.Instance?.Interact();
                 if (binder.Interact() && !string.IsNullOrEmpty(binder.Text))
                 {
                     _readableTitle = binder.Label;
                     _readableText = binder.Text;
+                    GameAudio.Instance?.UiOpen();
                 }
                 return true;
             }
@@ -107,14 +169,22 @@ namespace HiddenValley.Unity
             if (session == null || session.Finished) return;
             _session = session;
             _lineIndex = 0;
+            PlayDialogueLine();
         }
 
         private void AdvanceDialogue()
         {
             var node = _session?.Node;
-            if (node == null) { _session = null; return; }
+            if (node == null) { EndDialogue(); return; }
 
-            if (_lineIndex < node.Lines.Count - 1) { _lineIndex++; return; }
+            GameAudio.Instance?.StopDialogueVoice();
+
+            if (_lineIndex < node.Lines.Count - 1)
+            {
+                _lineIndex++;
+                PlayDialogueLine();
+                return;
+            }
 
             // Past the last line. If choices are showing, the tap does nothing — the
             // player must aim at one, and movement is locked so mis-taps cost nothing.
@@ -122,14 +192,55 @@ namespace HiddenValley.Unity
 
             _boot.Game.Dialogue.Continue(_session);
             _lineIndex = 0;
-            if (_session.Finished) _session = null;
+            if (_session.Finished)
+            {
+                EndDialogue();
+                GameAudio.Instance?.DialogueAdvance();
+            }
+            else
+            {
+                PlayDialogueLine();
+            }
         }
 
         private void Choose(int index)
         {
+            GameAudio.Instance?.UiClick();
+            GameAudio.Instance?.StopDialogueVoice();
             _boot.Game.Dialogue.Choose(_session, index);
             _lineIndex = 0;
-            if (_session != null && _session.Finished) _session = null;
+            if (_session != null && _session.Finished) EndDialogue();
+            else PlayDialogueLine();
+        }
+
+        private void EndDialogue()
+        {
+            _session = null;
+            _typeFull = "";
+            _typeChars = 0;
+            GameAudio.Instance?.StopDialogueVoice();
+        }
+
+        private void PlayDialogueLine()
+        {
+            var node = _session?.Node;
+            if (node == null) return;
+            string line = _lineIndex < node.Lines.Count ? node.Lines[_lineIndex] : "";
+            _typeFull = line ?? "";
+            _typeChars = 0;
+            _typeNext = Time.unscaledTime;
+            // Prefer full ElevenLabs VO for this exact line; falls back to speaker cue.
+            GameAudio.Instance?.PlayDialogueLine(node.Speaker, line);
+
+            // Mystery-thread stings when Quietday clues enter conversation text.
+            if (!string.IsNullOrEmpty(line) &&
+                (line.IndexOf("Quietday", System.StringComparison.OrdinalIgnoreCase) >= 0
+                 || line.IndexOf("kiln ash", System.StringComparison.OrdinalIgnoreCase) >= 0
+                 || line.IndexOf("warm", System.StringComparison.OrdinalIgnoreCase) >= 0
+                    && line.IndexOf("channel", System.StringComparison.OrdinalIgnoreCase) >= 0))
+            {
+                GameAudio.Instance?.PlayMysterySting();
+            }
         }
 
         // ---- drawing ----------------------------------------------------------
@@ -201,13 +312,19 @@ namespace HiddenValley.Unity
             float bw = w * 0.11f, bh = h * 0.07f;
             if (GUI.Button(new Rect(w * 0.30f, h * 0.02f, bw, bh), "Bag", _button))
             {
+                bool opening = !_bagOpen;
                 _bagOpen = !_bagOpen;
                 _accountOpen = false;
+                if (_bagOpen && opening) GameAudio.Instance?.UiOpen();
+                else if (!_bagOpen) GameAudio.Instance?.UiClose();
             }
             if (GUI.Button(new Rect(w * 0.42f, h * 0.02f, bw, bh), "Account", _button))
             {
+                bool opening = !_accountOpen;
                 _accountOpen = !_accountOpen;
                 _bagOpen = false;
+                if (_accountOpen && opening) GameAudio.Instance?.UiOpen();
+                else if (!_accountOpen) GameAudio.Instance?.UiClose();
             }
         }
 
@@ -240,10 +357,19 @@ namespace HiddenValley.Unity
             GUILayout.BeginArea(inner);
             GUILayout.BeginVertical();
 
-            if (!string.IsNullOrEmpty(node.Speaker)) GUILayout.Label(node.Speaker, _title);
+            // Prefer character display name over content id when present.
+            string speaker = node.Speaker;
+            if (!string.IsNullOrEmpty(speaker) && speaker.StartsWith("npc."))
+            {
+                var def = _boot.Game.Content.Npc(speaker);
+                if (def != null && !string.IsNullOrEmpty(def.Name)) speaker = def.Name;
+            }
+            if (!string.IsNullOrEmpty(speaker)) GUILayout.Label(speaker, _title);
 
-            string line = _lineIndex < node.Lines.Count ? node.Lines[_lineIndex] : "";
-            GUILayout.Label(line, _label);
+            string visible = _typeFull;
+            if (_typeChars < _typeFull.Length)
+                visible = _typeFull.Substring(0, Mathf.Clamp(_typeChars, 0, _typeFull.Length));
+            GUILayout.Label(visible, _label);
 
             GUILayout.FlexibleSpace();
 
@@ -294,11 +420,20 @@ namespace HiddenValley.Unity
             var inventory = _boot.Game.State.Inventory;
             if (inventory.Count == 0) GUILayout.Label("Nothing carried.", _label);
             else
+            {
+                float icon = h * 0.07f;
                 foreach (var pair in inventory)
                 {
                     var item = _boot.Game.Content.Item(pair.Key);
-                    GUILayout.Label($"{item?.Name ?? pair.Key} × {pair.Value}", _label);
+                    GUILayout.BeginHorizontal();
+                    var tex = RuntimeArt.Icon(pair.Key);
+                    var iconRect = GUILayoutUtility.GetRect(icon, icon, GUILayout.Width(icon), GUILayout.Height(icon));
+                    if (tex != null) GUI.DrawTexture(iconRect, tex, ScaleMode.ScaleToFit);
+                    else GUI.Box(iconRect, GUIContent.none);
+                    GUILayout.Label($"{item?.Name ?? pair.Key} × {pair.Value}", _label, GUILayout.Height(icon));
+                    GUILayout.EndHorizontal();
                 }
+            }
 
             GUILayout.EndArea();
         }
