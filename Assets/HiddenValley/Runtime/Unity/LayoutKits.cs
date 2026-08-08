@@ -47,6 +47,10 @@ namespace HiddenValley.Unity
                     foreach (var p in Bridge(name, pos, size)) yield return p;
                     break;
 
+                case "tree":
+                    foreach (var p in Tree(name, pos, size)) yield return p;
+                    break;
+
                 default:
                     yield return block; // unknown kit: at least render the footprint
                     break;
@@ -68,6 +72,18 @@ namespace HiddenValley.Unity
             // Door: an inset dark slab on the south face.
             yield return Spec($"{name}.Door", "bark", pos[0] + w * 0.18f, pos[1] + baseH + 1.05f,
                 pos[2] - d / 2 - 0.06f, 1.0f, 2.1f, 0.12f);
+
+            // Windows: warm lamp-material panes — dead facades read as film sets.
+            // One beside the door, one on each gable end, one upstairs when two floors.
+            yield return Spec($"{name}.Win.S", "lamp", pos[0] - w * 0.22f, pos[1] + baseH + 1.5f,
+                pos[2] - d / 2 - 0.05f, 0.7f, 0.8f, 0.1f);
+            yield return Spec($"{name}.Win.E", "lamp", pos[0] + w / 2 + 0.05f, pos[1] + baseH + 1.5f,
+                pos[2] + d * 0.1f, 0.1f, 0.8f, 0.7f);
+            yield return Spec($"{name}.Win.W", "lamp", pos[0] - w / 2 - 0.05f, pos[1] + baseH + 1.5f,
+                pos[2] - d * 0.1f, 0.1f, 0.8f, 0.7f);
+            if (floors > 1)
+                yield return Spec($"{name}.Win.Up", "lamp", pos[0] + w * 0.15f,
+                    pos[1] + baseH + 2.8f + 1.4f, pos[2] - d / 2 - 0.05f, 0.7f, 0.8f, 0.1f);
 
             // Pitched roof: two planes meeting over a ridge that runs along x.
             float roofY = pos[1] + baseH + wallH;
@@ -123,6 +139,33 @@ namespace HiddenValley.Unity
                 yield return Spec($"{name}.Tooth{i}", "dark", tx, ty, gz,
                     0.5f, 0.5f, 0.45f, rot: new[] { 0, 0, (float)(a * 180 / Math.PI) });
             }
+        }
+
+        /// <summary>A tree is a trunk plus an asymmetric three-sphere canopy — bare
+        /// cylinders were the loudest remaining "unfinished" tell in every screenshot.
+        /// Deterministic per position, so regeneration never reshuffles the forest.</summary>
+        private static IEnumerable<JObject> Tree(string name, float[] pos, float[] size)
+        {
+            float trunkR = size[0] > 0 ? size[0] : 0.6f;
+            float trunkHalf = size[1] > 0 ? size[1] : 3f;
+
+            yield return Spec($"{name}.Trunk", "bark", pos[0], pos[1], pos[2],
+                trunkR, trunkHalf, trunkR, shape: "cylinder");
+
+            // Cheap deterministic hash off the position for canopy asymmetry.
+            float h = (pos[0] * 12.9898f + pos[2] * 78.233f);
+            h = h - (float)Math.Floor(h);
+
+            float top = pos[1] + trunkHalf;
+            float crown = 1.9f + trunkHalf * 0.45f;
+            yield return Spec($"{name}.Crown", "moss", pos[0], top + crown * 0.35f, pos[2],
+                crown, crown * 0.85f, crown, shape: "sphere");
+            yield return Spec($"{name}.Crown2", "moss",
+                pos[0] + (h - 0.5f) * crown, top + crown * 0.15f, pos[2] + (h * 0.7f - 0.35f) * crown,
+                crown * 0.72f, crown * 0.6f, crown * 0.72f, shape: "sphere");
+            yield return Spec($"{name}.Crown3", "moss",
+                pos[0] - (h * 0.8f - 0.4f) * crown, top + crown * 0.55f, pos[2] - (h - 0.5f) * crown * 0.8f,
+                crown * 0.55f, crown * 0.5f, crown * 0.55f, shape: "sphere");
         }
 
         private static IEnumerable<JObject> Bridge(string name, float[] pos, float[] size)
