@@ -32,6 +32,7 @@ namespace HiddenValley.Unity
         private Dictionary<string, string> _voiceMap = new Dictionary<string, string>();
         private float _nextFootstep;
         private PlayerController _player;
+        private AtmosphereRig _atmosphere;
         private int _lastInventoryCount = -1;
         private int _lastCompletedQuests = -1;
 
@@ -260,16 +261,21 @@ namespace HiddenValley.Unity
             Debug.Log("[HiddenValley] Ambience started: amb_valley");
         }
 
-        /// <summary>Day-phase ambience: full by day, hushed at night; water bed by
-        /// proximity to the channel. One lerp per frame, no allocation.</summary>
+        /// <summary>Day-phase ambience: full by day, hushed at night with the synthesized
+        /// cricket bed crossfaded in; water bed by proximity to the channel; occasional
+        /// wind gusts that respect Quietday stillness. Lerps only, no allocation.</summary>
+        private AudioSource _night;
+        private float _nextGustAt = 30f;
+
         private void LateUpdateAmbience()
         {
             var boot = GameBootstrap.Instance;
             if (boot?.Game == null || _ambience == null) return;
 
-            float phaseScale = boot.Game.State.Clock.PhaseName switch
+            string phase = boot.Game.State.Clock.PhaseName;
+            float phaseScale = phase switch
             {
-                "night" => 0.5f,
+                "night" => 0.35f,
                 "dusk" => 0.8f,
                 "dawn" => 0.9f,
                 _ => 1f
@@ -278,6 +284,37 @@ namespace HiddenValley.Unity
             // Only ease when not ducked by VO (the duck path owns the volume then).
             if (_voice == null || !_voice.isPlaying)
                 _ambience.volume = Mathf.MoveTowards(_ambience.volume, target, Time.deltaTime * 0.15f);
+
+            // Night bed: crickets fade up as the valley loop fades down.
+            if (_night == null)
+            {
+                var clip = Load("amb_night");
+                if (clip != null)
+                {
+                    _night = gameObject.AddComponent<AudioSource>();
+                    _night.clip = clip;
+                    _night.loop = true;
+                    _night.playOnAwake = false;
+                    _night.volume = 0f;
+                    _night.Play();
+                }
+            }
+            if (_night != null)
+            {
+                bool dark = phase == "night" || phase == "dusk";
+                float nightTarget = dark ? masterVolume * ambienceVolume * (phase == "night" ? 0.9f : 0.3f) : 0f;
+                _night.volume = Mathf.MoveTowards(_night.volume, nightTarget, Time.deltaTime * 0.1f);
+            }
+
+            // Gusts: sparse, daytime-weighted, and silenced entirely while the world is
+            // muted — Quietday stillness is also an audio statement.
+            var rig = _atmosphere != null ? _atmosphere : (_atmosphere = FindFirstObjectByType<AtmosphereRig>());
+            bool still = rig != null && rig.Mute > 0.2f;
+            if (!still && Time.time >= _nextGustAt && phase != "night")
+            {
+                _nextGustAt = Time.time + Random.Range(18f, 45f);
+                Play("sfx_gust", 0.5f);
+            }
 
             if (_water != null && _player != null)
             {

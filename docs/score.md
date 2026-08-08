@@ -40,3 +40,8 @@ Performance 5 → **5.5** (Mac evidence; device 60fps still pending). Overall 5.
 Seven banking swifts over the village (absent on Quietdays — absence as
 information); Bag/Account/Crafting scroll; toggles enlarged.
 World-alive 6 → **6.5**, UX 5.5 → **6**. **Overall 5.9.**
+
+### Pass 4 — synthesized night audio + gusts (boot-log-verified)
+amb_night (brown-noise floor + cricket chirp trains, seamless loop) crossfades
+in at dusk/night; sparse daytime gusts, silenced by Quietday stillness.
+Audio 5 → **6**. **Overall 6.0.**
