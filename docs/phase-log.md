@@ -406,6 +406,41 @@ does it alone.
 Trust-on-uninstall note for future sessions: uninstalling the app resets the
 developer-profile trust on the phone; reinstalling over the top does not.
 
+### 2026-08-08 — M0: correctness fixes found by four-agent inspection
+
+Actor: Claude Code (`claude-fable-5`). Full findings in `docs/aaa-roadmap.md`;
+milestones in `docs/release-plan.md`.
+
+Fixed, each verified by test and/or the macOS smoke player:
+
+1. **Save restored on launch** — `LoadFromDisk` had zero call sites; every launch was
+   New Game. Restore now runs in `GameBootstrap.Awake` before `Ready`; player position
+   rides in a `player.pos` flag and is reapplied in `Start`.
+2. **Crafting panel** — `ui.open_crafting` finally has a consumer in `GameHud`;
+   Vesk's capability (and quest.lens's documented route) is reachable on device.
+3. **GC hitches removed** — derived GUIStyles hoisted, clock/tracker/choices/bag all
+   revision-gated caches; the per-OnGUI allocation churn (est. 5–20 ms spikes every
+   ~10–30 s) is gone.
+4. **Cue effects** — new Core `CueEffect` (`{"type":"cue","id":"sting.mystery"}`),
+   transient `PendingCues` drained by `GameBootstrap.Cue`; `GameAudio` routes
+   `sting.*`/`sfx.*`. The hardcoded English-substring sting matcher in GameHud is
+   deleted; the mystery's stings are authored in `30-quietday.json` where they belong.
+5. **Latent revision bug** — `LearnClueEffect`/`LearnRecipeEffect` mutated state
+   without `Touch()`, so clue/recipe discovery never notified views. Now routed
+   through `GameState.LearnClue/LearnRecipe`. Regression-tested.
+6. **Audio** — VO duck no longer flaps on the fallback path; short SFX prewarmed at
+   boot; per-speaker VO async-prewarmed when a talk prompt first appears.
+7. **VO hygiene** — 9 narration lines ("Vesk does not look up…") were mapped to
+   character voice; unmapped, with a regression test.
+8. **Validator** — new flag-consistency check (set-but-never-read / read-but-never-set
+   with `ui.`/`solved.`/`player.` namespaces); would have caught #2 at authoring time.
+9. **Single-source layout** — the duplicated `Assets/HiddenValley/Layout` copy is
+   deleted; `VillageSetup` reads the same StreamingAssets file as `LayoutSpawner`.
+
+Tests: **47/47.** macOS smoke: full slice boots, restores a save, spawns 32/3/1 in
+33 ms. Passes run: none (smoke ≠ device pass). **Still owed by the owner: the first
+full-slice device pass** — build to phone, 10 minutes, worst frame time into this log.
+
 ---
 
 ## What the next session should do

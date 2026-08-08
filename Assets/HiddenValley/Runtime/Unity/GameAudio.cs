@@ -90,6 +90,7 @@ namespace HiddenValley.Unity
             if (boot != null)
             {
                 boot.Changed += OnGameChanged;
+                boot.Cue += OnCue;
                 if (boot.Game != null)
                 {
                     _lastInventoryCount = CountInventory(boot.Game);
@@ -97,6 +98,7 @@ namespace HiddenValley.Unity
                 }
             }
 
+            PrewarmShortClips();
             StartAmbience();
         }
 
@@ -104,7 +106,66 @@ namespace HiddenValley.Unity
         {
             if (Instance == this) Instance = null;
             var boot = GameBootstrap.Instance;
-            if (boot != null) boot.Changed -= OnGameChanged;
+            if (boot != null)
+            {
+                boot.Changed -= OnGameChanged;
+                boot.Cue -= OnCue;
+            }
+        }
+
+        /// <summary>
+        /// Content-authored presentation cues (see Core CueEffect). Convention:
+        /// "sting.x" → music sting "mus_sting_x", "sfx.x" → one-shot "sfx_x".
+        /// </summary>
+        private void OnCue(string cue)
+        {
+            if (string.IsNullOrEmpty(cue)) return;
+            if (cue.StartsWith("sting.")) PlayMusicSting("mus_sting_" + cue.Substring(6));
+            else if (cue.StartsWith("sfx.")) Play("sfx_" + cue.Substring(4));
+        }
+
+        /// <summary>
+        /// The short cue set is a few seconds of audio total; loading it at boot removes
+        /// the first-play hitch from the exact moments feedback matters most.
+        /// </summary>
+        private void PrewarmShortClips()
+        {
+            string[] names =
+            {
+                "sfx_footstep", "sfx_pickup", "sfx_interact", "sfx_jump",
+                "sfx_ui_open", "sfx_ui_close", "sfx_ui_click", "sfx_dialogue_advance",
+                "sfx_dialogue_default", "sfx_dialogue_vesk", "sfx_dialogue_coll",
+                "sfx_dialogue_orrel", "sfx_dialogue_pip",
+                "mus_sting_quest", "mus_sting_mystery"
+            };
+            foreach (var n in names) Load(n);
+        }
+
+        private readonly HashSet<string> _prewarmedSpeakers = new HashSet<string>();
+
+        /// <summary>
+        /// Async-loads every VO clip mapped to a speaker, called when their talk prompt
+        /// first appears — by the time the player taps, the lines are in memory instead
+        /// of decoding on the main thread mid-dialogue.
+        /// </summary>
+        public void PrewarmSpeaker(string speaker)
+        {
+            if (string.IsNullOrEmpty(speaker) || !_prewarmedSpeakers.Add(speaker)) return;
+
+            string prefix = speaker + "|";
+            foreach (var pair in _voiceMap)
+            {
+                if (!pair.Key.StartsWith(prefix)) continue;
+                string clipId = pair.Value;
+                if (_clips.ContainsKey(clipId)) continue;
+
+                var request = Resources.LoadAsync<AudioClip>("Audio/Voice/" + clipId);
+                request.completed += _ =>
+                {
+                    if (!_clips.ContainsKey(clipId))
+                        _clips[clipId] = request.asset as AudioClip;
+                };
+            }
         }
 
         private void Update()
@@ -188,9 +249,6 @@ namespace HiddenValley.Unity
         public void PlayDialogueLine(string speaker, string lineText)
         {
             if (_voice != null && _voice.isPlaying) _voice.Stop();
-            // Duck ambience under VO so speech stays readable.
-            if (_ambience != null)
-                _ambience.volume = masterVolume * ambienceVolume * 0.45f;
 
             string clipId = ResolveVoiceClipId(speaker, lineText);
             if (!string.IsNullOrEmpty(clipId))
@@ -198,6 +256,11 @@ namespace HiddenValley.Unity
                 var vo = LoadVoice(clipId);
                 if (vo != null)
                 {
+                    // Duck ambience only when real VO plays — the short speaker cue on the
+                    // fallback path used to duck and instantly restore, an audible flap.
+                    if (_ambience != null)
+                        _ambience.volume = masterVolume * ambienceVolume * 0.45f;
+
                     _voice.clip = vo;
                     _voice.volume = Mathf.Clamp01(masterVolume * voiceVolume);
                     _voice.Play();
@@ -206,8 +269,6 @@ namespace HiddenValley.Unity
             }
 
             Play(DialogueClipForSpeaker(speaker));
-            if (_ambience != null)
-                _ambience.volume = masterVolume * ambienceVolume;
         }
 
         public void StopDialogueVoice()

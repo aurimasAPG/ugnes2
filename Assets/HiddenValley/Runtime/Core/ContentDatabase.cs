@@ -450,6 +450,9 @@ namespace HiddenValley.Core
                 case "learn_clue":
                     return new LearnClueEffect { Clue = Str(t, "clue") };
 
+                case "cue":
+                    return new CueEffect { Id = Str(t, "id") };
+
                 case "set_time":
                     return new SetTimeEffect { Phase = Str(t, "phase", "dawn") };
 

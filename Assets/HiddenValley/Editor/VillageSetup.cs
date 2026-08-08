@@ -27,7 +27,9 @@ namespace HiddenValley.Editor
     /// </summary>
     public static class VillageSetup
     {
-        private const string LayoutPath = "Assets/HiddenValley/Layout/heartwood.json";
+        // Single source of truth: the same file LayoutSpawner reads at runtime. The old
+        // Assets/HiddenValley/Layout copy drifted from this one and is deleted.
+        private const string LayoutPath = "Assets/StreamingAssets/Layout/heartwood.json";
         private const string ScenePath = "Assets/HiddenValley/Scenes/Heartwood.unity";
         private const string GreyboxScenePath = "Assets/HiddenValley/Scenes/Greybox.unity";
         private const string SettingsDir = "Assets/HiddenValley/Settings";

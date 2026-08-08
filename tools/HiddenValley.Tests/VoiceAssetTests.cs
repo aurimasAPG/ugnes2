@@ -43,6 +43,34 @@ namespace HiddenValley.Tests
         }
 
         [Fact]
+        public void No_narration_line_is_mapped_to_character_voice()
+        {
+            // A character audibly reading their own stage directions ("Vesk does not look
+            // up…") is a production-value tell. Narration lines mention the speaker in
+            // third person and contain no quoted speech; they must fall back to the short
+            // speaker cue, never to VO.
+            var mapPath = Path.Combine(RepoRoot, "Assets", "StreamingAssets", "Audio", "voice_map.json");
+            var root = JObject.Parse(File.ReadAllText(mapPath));
+            var names = new (string speaker, string name)[]
+            {
+                ("npc.vesk", "Vesk"), ("npc.coll", "Coll"), ("npc.orrel", "Orrel"), ("npc.pip", "Pip")
+            };
+
+            foreach (var prop in root.Properties())
+            {
+                var split = prop.Name.IndexOf('|');
+                if (split < 0) continue;
+                var speaker = prop.Name.Substring(0, split);
+                var line = prop.Name.Substring(split + 1);
+
+                foreach (var (id, name) in names)
+                    if (speaker == id)
+                        Assert.False(line.Contains(name) && !line.Contains("\""),
+                            "narration line mapped to VO: " + prop.Name);
+            }
+        }
+
+        [Fact]
         public void At_least_70_voice_mp3_files_exist()
         {
             var dir = Path.Combine(RepoRoot, "Assets", "HiddenValley", "Resources", "Audio", "Voice");

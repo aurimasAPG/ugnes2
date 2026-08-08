@@ -43,11 +43,24 @@ namespace HiddenValley.Unity
         private bool _bagOpen;
         private bool _accountOpen;
 
+        /// <summary>Station id while the crafting panel is open; null when closed.
+        /// Opened by content setting the ui.open_crafting flag (e.g. the kiln).</summary>
+        private string _craftingStation;
+
         // Typewriter for dialogue lines (presentation polish).
         private string _typeFull = "";
         private int _typeChars;
         private float _typeNext;
         private const float TypeCharsPerSecond = 42f;
+
+        // Revision-gated caches. OnGUI runs at least twice a frame; anything rebuilt per
+        // pass was allocating ~2-6 KB/frame and buying a GC spike every half minute.
+        private readonly List<string> _trackerCache = new List<string>();
+        private string _clockText = "";
+        private int _clockMinute = -1, _clockDay = -1;
+        private List<DialogueChoice> _choiceCache = new List<DialogueChoice>();
+        private readonly List<string> _bagCache = new List<string>();
+        private readonly List<string> _bagIcons = new List<string>();
 
         /// <summary>
         /// Attach a GameHud to <paramref name="host"/> (normally the Controls object) and
@@ -70,6 +83,52 @@ namespace HiddenValley.Unity
             _boot = GameBootstrap.Instance;
             RefreshNpcs();
             if (controls != null) controls.ContextAction = ContextAction;
+            if (_boot != null)
+            {
+                _boot.Changed += OnGameChanged;
+                OnGameChanged();
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_boot != null) _boot.Changed -= OnGameChanged;
+        }
+
+        private void OnGameChanged()
+        {
+            if (_boot?.Game == null) return;
+
+            _trackerCache.Clear();
+            _trackerCache.AddRange(_boot.Game.Quests.ActiveTrackerLines());
+
+            if (_session != null)
+                _choiceCache = _boot.Game.Dialogue.AvailableChoices(_session);
+
+            RebuildBagCache();
+            _recipeCacheStation = "\0"; // inputs/known recipes may have changed mid-panel
+
+            // Content asks for the crafting panel by flag (e.g. the kiln's on_interact).
+            var station = _boot.Game.State.GetFlag("ui.open_crafting");
+            if (!string.IsNullOrEmpty(station))
+            {
+                _boot.Game.State.SetFlag("ui.open_crafting", "");
+                _craftingStation = station;
+                _bagOpen = _accountOpen = false;
+                GameAudio.Instance?.UiOpen();
+            }
+        }
+
+        private void RebuildBagCache()
+        {
+            _bagCache.Clear();
+            _bagIcons.Clear();
+            foreach (var pair in _boot.Game.State.Inventory)
+            {
+                var item = _boot.Game.Content.Item(pair.Key);
+                _bagCache.Add($"{item?.Name ?? pair.Key} × {pair.Value}");
+                _bagIcons.Add(pair.Key);
+            }
         }
 
         private void Update()
@@ -78,7 +137,8 @@ namespace HiddenValley.Unity
             if (_npcs.Length == 0) RefreshNpcs();
 
             if (controls != null)
-                controls.Locked = _session != null || _readableText != null || _bagOpen || _accountOpen;
+                controls.Locked = _session != null || _readableText != null
+                    || _bagOpen || _accountOpen || _craftingStation != null;
 
             if (_session != null && _typeChars < _typeFull.Length && Time.unscaledTime >= _typeNext)
             {
@@ -101,9 +161,10 @@ namespace HiddenValley.Unity
                 GameAudio.Instance?.UiClose();
                 return true;
             }
-            if (_bagOpen || _accountOpen)
+            if (_bagOpen || _accountOpen || _craftingStation != null)
             {
                 _bagOpen = _accountOpen = false;
+                _craftingStation = null;
                 GameAudio.Instance?.UiClose();
                 return true;
             }
@@ -136,6 +197,22 @@ namespace HiddenValley.Unity
             }
 
             return false; // nothing claimed the tap — it becomes a jump
+        }
+
+        /// <summary>Recipes for the open station, resolved once per panel state change.</summary>
+        private readonly List<RecipeDef> _recipeCache = new List<RecipeDef>();
+        private string _recipeCacheStation;
+
+        private List<RecipeDef> StationRecipes()
+        {
+            if (_recipeCacheStation != _craftingStation)
+            {
+                _recipeCacheStation = _craftingStation;
+                _recipeCache.Clear();
+                if (_craftingStation != null)
+                    _recipeCache.AddRange(_boot.Game.Crafting.KnownRecipes(_craftingStation));
+            }
+            return _recipeCache;
         }
 
         private NpcBinder NearestNpc()
@@ -229,18 +306,11 @@ namespace HiddenValley.Unity
             _typeFull = line ?? "";
             _typeChars = 0;
             _typeNext = Time.unscaledTime;
+            _choiceCache = _boot.Game.Dialogue.AvailableChoices(_session);
             // Prefer full ElevenLabs VO for this exact line; falls back to speaker cue.
+            // Mystery stings are no longer string-matched here — content authors them
+            // with cue effects (see Core CueEffect), routed through GameAudio.OnCue.
             GameAudio.Instance?.PlayDialogueLine(node.Speaker, line);
-
-            // Mystery-thread stings when Quietday clues enter conversation text.
-            if (!string.IsNullOrEmpty(line) &&
-                (line.IndexOf("Quietday", System.StringComparison.OrdinalIgnoreCase) >= 0
-                 || line.IndexOf("kiln ash", System.StringComparison.OrdinalIgnoreCase) >= 0
-                 || line.IndexOf("warm", System.StringComparison.OrdinalIgnoreCase) >= 0
-                    && line.IndexOf("channel", System.StringComparison.OrdinalIgnoreCase) >= 0))
-            {
-                GameAudio.Instance?.PlayMysterySting();
-            }
         }
 
         // ---- drawing ----------------------------------------------------------
@@ -267,7 +337,14 @@ namespace HiddenValley.Unity
             };
 
             _button = new GUIStyle(GUI.skin.button) { fontSize = baseSize, wordWrap = true };
+
+            // Derived styles hoisted here — building them inside Draw* allocated per pass.
+            _labelRight = new GUIStyle(_label) { alignment = TextAnchor.UpperRight };
+            _hintRight = new GUIStyle(_label) { alignment = TextAnchor.LowerRight };
+            _footCenter = new GUIStyle(_label) { alignment = TextAnchor.LowerCenter };
         }
+
+        private GUIStyle _labelRight, _hintRight, _footCenter;
 
         private void OnGUI()
         {
@@ -281,6 +358,7 @@ namespace HiddenValley.Unity
 
             if (_session != null) DrawDialogue(w, h);
             else if (_readableText != null) DrawReadable(w, h);
+            else if (_craftingStation != null) DrawCrafting(w, h);
             else if (_bagOpen) DrawBag(w, h);
             else if (_accountOpen) DrawAccount(w, h);
             else DrawPrompt(w, h);
@@ -289,19 +367,69 @@ namespace HiddenValley.Unity
         private void DrawClockAndTracker(float w, float h)
         {
             var clock = _boot.Game.State.Clock;
-            string time = $"Day {clock.Day + 1} · {clock.PhaseName} · {clock.Minute / 60:00}:{clock.Minute % 60:00}";
+            if (clock.Minute != _clockMinute || clock.Day != _clockDay)
+            {
+                _clockMinute = clock.Minute;
+                _clockDay = clock.Day;
+                _clockText = $"Day {clock.Day + 1} · {clock.PhaseName} · {clock.Minute / 60:00}:{clock.Minute % 60:00}";
+            }
 
             var right = new Rect(w * 0.55f, h * 0.02f, w * 0.43f, h * 0.5f);
             GUILayout.BeginArea(right);
             GUILayout.BeginVertical();
 
-            var alignRight = new GUIStyle(_label) { alignment = TextAnchor.UpperRight };
-            GUILayout.Label(time, alignRight);
+            GUILayout.Label(_clockText, _labelRight);
 
-            foreach (var line in _boot.Game.Quests.ActiveTrackerLines())
-                GUILayout.Label(line, alignRight);
+            for (int i = 0; i < _trackerCache.Count; i++)
+                GUILayout.Label(_trackerCache[i], _labelRight);
 
             GUILayout.EndVertical();
+            GUILayout.EndArea();
+        }
+
+        private void DrawCrafting(float w, float h)
+        {
+            var panel = new Rect(w * 0.15f, h * 0.1f, w * 0.7f, h * 0.8f);
+            GUI.Box(panel, GUIContent.none);
+
+            var inner = new Rect(panel.x + w * 0.02f, panel.y + h * 0.02f,
+                                 panel.width - w * 0.04f, panel.height - h * 0.04f);
+            GUILayout.BeginArea(inner);
+            GUILayout.Label("Craft — " + _craftingStation, _title);
+
+            var recipes = StationRecipes();
+            if (recipes.Count == 0)
+                GUILayout.Label("You don't know any recipes for this station yet.", _label);
+
+            var crafting = _boot.Game.Crafting;
+            for (int i = 0; i < recipes.Count; i++)
+            {
+                var recipe = recipes[i];
+                GUILayout.BeginHorizontal();
+                GUILayout.BeginVertical();
+                GUILayout.Label(recipe.Name, _label);
+
+                foreach (var input in recipe.Inputs)
+                {
+                    var item = _boot.Game.Content.Item(input.Key);
+                    int have = _boot.Game.State.ItemCount(input.Key);
+                    GUILayout.Label($"  {item?.Name ?? input.Key}: {have}/{input.Value}", _label);
+                }
+                GUILayout.EndVertical();
+
+                GUI.enabled = crafting.CanCraft(recipe.Id);
+                if (GUILayout.Button("Craft", _button,
+                        GUILayout.Width(w * 0.16f), GUILayout.MinHeight(h * 0.08f)))
+                {
+                    if (crafting.Craft(recipe.Id)) GameAudio.Instance?.Play("sfx_pickup");
+                }
+                GUI.enabled = true;
+                GUILayout.EndHorizontal();
+                GUILayout.Space(h * 0.015f);
+            }
+
+            GUILayout.FlexibleSpace();
+            GUILayout.Label("tap anywhere to close", _footCenter);
             GUILayout.EndArea();
         }
 
@@ -333,7 +461,12 @@ namespace HiddenValley.Unity
             string label = null;
 
             var npc = NearestNpc();
-            if (npc != null) label = $"Talk to {npc.Def.Name}";
+            if (npc != null)
+            {
+                label = $"Talk to {npc.Def.Name}";
+                // Their VO decodes now, off-frame, instead of at the first tapped line.
+                GameAudio.Instance?.PrewarmSpeaker(npc.Id);
+            }
             else if (interaction != null && interaction.Current != null)
                 label = interaction.Current.Label ?? "Interact";
 
@@ -374,18 +507,16 @@ namespace HiddenValley.Unity
             GUILayout.FlexibleSpace();
 
             bool lastLine = _lineIndex >= node.Lines.Count - 1;
-            var choices = _boot.Game.Dialogue.AvailableChoices(_session);
 
-            if (lastLine && choices.Count > 0)
+            if (lastLine && _choiceCache.Count > 0)
             {
-                for (int i = 0; i < choices.Count; i++)
-                    if (GUILayout.Button(choices[i].Text, _button, GUILayout.MinHeight(h * 0.07f)))
+                for (int i = 0; i < _choiceCache.Count; i++)
+                    if (GUILayout.Button(_choiceCache[i].Text, _button, GUILayout.MinHeight(h * 0.07f)))
                         Choose(i);
             }
             else
             {
-                var hint = new GUIStyle(_label) { alignment = TextAnchor.LowerRight };
-                GUILayout.Label("▸", hint);
+                GUILayout.Label("▸", _hintRight);
             }
 
             GUILayout.EndVertical();
@@ -403,7 +534,7 @@ namespace HiddenValley.Unity
             if (!string.IsNullOrEmpty(_readableTitle)) GUILayout.Label(_readableTitle, _title);
             GUILayout.Label(_readableText, _label);
             GUILayout.FlexibleSpace();
-            GUILayout.Label("tap to close", new GUIStyle(_label) { alignment = TextAnchor.LowerCenter });
+            GUILayout.Label("tap to close", _footCenter);
             GUILayout.EndArea();
         }
 
@@ -417,20 +548,18 @@ namespace HiddenValley.Unity
             GUILayout.BeginArea(inner);
             GUILayout.Label("Bag", _title);
 
-            var inventory = _boot.Game.State.Inventory;
-            if (inventory.Count == 0) GUILayout.Label("Nothing carried.", _label);
+            if (_bagCache.Count == 0) GUILayout.Label("Nothing carried.", _label);
             else
             {
                 float icon = h * 0.07f;
-                foreach (var pair in inventory)
+                for (int i = 0; i < _bagCache.Count; i++)
                 {
-                    var item = _boot.Game.Content.Item(pair.Key);
                     GUILayout.BeginHorizontal();
-                    var tex = RuntimeArt.Icon(pair.Key);
+                    var tex = RuntimeArt.Icon(_bagIcons[i]);
                     var iconRect = GUILayoutUtility.GetRect(icon, icon, GUILayout.Width(icon), GUILayout.Height(icon));
                     if (tex != null) GUI.DrawTexture(iconRect, tex, ScaleMode.ScaleToFit);
                     else GUI.Box(iconRect, GUIContent.none);
-                    GUILayout.Label($"{item?.Name ?? pair.Key} × {pair.Value}", _label, GUILayout.Height(icon));
+                    GUILayout.Label(_bagCache[i], _label, GUILayout.Height(icon));
                     GUILayout.EndHorizontal();
                 }
             }

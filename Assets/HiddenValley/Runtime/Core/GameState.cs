@@ -185,6 +185,36 @@ namespace HiddenValley.Core
         public bool KnowsClue(string clueId) => clueId != null && Clues.Contains(clueId);
         public bool KnowsRecipe(string recipeId) => recipeId != null && Recipes.Contains(recipeId);
 
+        /// <summary>Adds and touches. Bare Clues.Add skipped Revision, so views never heard
+        /// about new clues until something else changed — found 2026-08-08.</summary>
+        public void LearnClue(string clueId)
+        {
+            if (string.IsNullOrEmpty(clueId)) return;
+            if (Clues.Add(clueId)) Touch();
+        }
+
+        public void LearnRecipe(string recipeId)
+        {
+            if (string.IsNullOrEmpty(recipeId)) return;
+            if (Recipes.Add(recipeId)) Touch();
+        }
+
+        // ---- presentation cues -------------------------------------------------
+
+        /// <summary>
+        /// Transient, never saved: cues emitted by content effects for the presentation
+        /// layer (stingers, Pip reactions, screen moments). The Unity side drains this
+        /// after each settle. Content authors moments; code never string-matches text.
+        /// </summary>
+        public readonly List<string> PendingCues = new List<string>();
+
+        public void EmitCue(string cueId)
+        {
+            if (string.IsNullOrEmpty(cueId)) return;
+            PendingCues.Add(cueId);
+            Touch();
+        }
+
         public void SetClock(Clock clock)
         {
             Clock = clock;
