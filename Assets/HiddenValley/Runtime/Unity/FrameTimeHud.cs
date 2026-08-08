@@ -37,6 +37,8 @@ namespace HiddenValley.Unity
         private float _worst;
         private float _windowElapsed;
         private bool _gestureHeld;
+        private float _nextTelemetryAt = 20f; // let load hitches wash out first
+        private float _sessionWorstAfterWarmup;
 
         public float WorstMs => _worst * 1000f;
 
@@ -63,6 +65,28 @@ namespace HiddenValley.Unity
                 ResetWindow();
             }
             _gestureHeld = gesture;
+
+            // Telemetry: the device pass's numbers, written down by the device itself.
+            // Appends a line every 15 s after a 20 s warmup (load hitches excluded), so
+            // an unattended run on the phone still produces real measurements that can
+            // be pulled off via devicectl and recorded in the phase log.
+            if (Time.unscaledTime > 20f && dt > _sessionWorstAfterWarmup)
+                _sessionWorstAfterWarmup = dt;
+
+            if (Time.unscaledTime >= _nextTelemetryAt)
+            {
+                _nextTelemetryAt = Time.unscaledTime + 15f;
+                try
+                {
+                    System.IO.File.AppendAllText(
+                        System.IO.Path.Combine(Application.persistentDataPath, "frame-telemetry.txt"),
+                        $"{System.DateTime.UtcNow:HH:mm:ss} t={Time.unscaledTime:0}s " +
+                        $"now={Time.unscaledDeltaTime * 1000f:0.0}ms worst={WorstMs:0.0}ms " +
+                        $"p99={OnePercentHighMs():0.0}ms sessionWorst={_sessionWorstAfterWarmup * 1000f:0.0}ms " +
+                        $"mem={Profiler.GetTotalAllocatedMemoryLong() / (1024 * 1024)}MB\n");
+                }
+                catch { /* telemetry must never take the game down */ }
+            }
         }
 
         private void ResetWindow()
