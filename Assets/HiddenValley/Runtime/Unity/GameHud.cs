@@ -423,9 +423,63 @@ namespace HiddenValley.Unity
             _labelRight = new GUIStyle(_label) { alignment = TextAnchor.UpperRight };
             _hintRight = new GUIStyle(_label) { alignment = TextAnchor.LowerRight };
             _footCenter = new GUIStyle(_label) { alignment = TextAnchor.LowerCenter };
+
+            // The Phase 4 skin: panels are warm paper with ink text — the account is a
+            // ledger, and the fiction hands us the visual language. Floating HUD text
+            // (clock, tracker, prompt) stays light-on-world; ink lives on paper only.
+            var inkColor = new Color(0.17f, 0.15f, 0.12f);
+            _paper = new GUIStyle(GUI.skin.box)
+            {
+                border = new RectOffset(10, 10, 10, 10)
+            };
+            _paper.normal.background = PaperTexture();
+
+            _ink = new GUIStyle(_label);
+            _ink.normal.textColor = inkColor;
+
+            _inkTitle = new GUIStyle(_title);
+            _inkTitle.normal.textColor = inkColor;
+
+            _inkFoot = new GUIStyle(_footCenter);
+            _inkFoot.normal.textColor = new Color(0.35f, 0.32f, 0.28f);
+
+            _inkHint = new GUIStyle(_hintRight);
+            _inkHint.normal.textColor = inkColor;
+
+            _paperButton = new GUIStyle(_button);
+            _paperButton.normal.background = PaperTexture();
+            _paperButton.hover.background = PaperTexture();
+            _paperButton.active.background = PaperTexture();
+            _paperButton.border = new RectOffset(10, 10, 10, 10);
+            _paperButton.normal.textColor = inkColor;
+            _paperButton.hover.textColor = inkColor;
+            _paperButton.active.textColor = new Color(0.4f, 0.2f, 0.1f);
         }
 
         private GUIStyle _labelRight, _hintRight, _footCenter;
+        private GUIStyle _paper, _ink, _inkTitle, _inkFoot, _inkHint, _paperButton;
+        private static Texture2D _paperTexture;
+
+        private static Texture2D PaperTexture()
+        {
+            if (_paperTexture != null) return _paperTexture;
+
+            const int size = 128;
+            _paperTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var random = new System.Random(11);
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float noise = (float)random.NextDouble() * 0.045f;
+                    float rim = Mathf.Min(Mathf.Min(x, size - 1 - x), Mathf.Min(y, size - 1 - y));
+                    float edge = Mathf.Clamp01(rim / 7f);          // darker deckle edge
+                    float shade = Mathf.Lerp(0.72f, 1f, edge);
+                    _paperTexture.SetPixel(x, y, new Color(
+                        (0.93f - noise) * shade, (0.885f - noise) * shade, (0.80f - noise) * shade, 0.97f));
+                }
+            _paperTexture.Apply();
+            return _paperTexture;
+        }
 
         private void OnGUI()
         {
@@ -502,16 +556,16 @@ namespace HiddenValley.Unity
         private void DrawCrafting(float w, float h)
         {
             var panel = new Rect(w * 0.15f, h * 0.1f, w * 0.7f, h * 0.8f);
-            GUI.Box(panel, GUIContent.none);
+            GUI.Box(panel, GUIContent.none, _paper);
 
             var inner = new Rect(panel.x + w * 0.02f, panel.y + h * 0.02f,
                                  panel.width - w * 0.04f, panel.height - h * 0.04f);
             GUILayout.BeginArea(inner);
-            GUILayout.Label("Craft — " + _craftingStation, _title);
+            GUILayout.Label("Craft — " + _craftingStation, _inkTitle);
 
             var recipes = StationRecipes();
             if (recipes.Count == 0)
-                GUILayout.Label("You don't know any recipes for this station yet.", _label);
+                GUILayout.Label("You don't know any recipes for this station yet.", _ink);
 
             var crafting = _boot.Game.Crafting;
             for (int i = 0; i < recipes.Count; i++)
@@ -519,18 +573,18 @@ namespace HiddenValley.Unity
                 var recipe = recipes[i];
                 GUILayout.BeginHorizontal();
                 GUILayout.BeginVertical();
-                GUILayout.Label(recipe.Name, _label);
+                GUILayout.Label(recipe.Name, _ink);
 
                 foreach (var input in recipe.Inputs)
                 {
                     var item = _boot.Game.Content.Item(input.Key);
                     int have = _boot.Game.State.ItemCount(input.Key);
-                    GUILayout.Label($"  {item?.Name ?? input.Key}: {have}/{input.Value}", _label);
+                    GUILayout.Label($"  {item?.Name ?? input.Key}: {have}/{input.Value}", _ink);
                 }
                 GUILayout.EndVertical();
 
                 GUI.enabled = crafting.CanCraft(recipe.Id);
-                if (GUILayout.Button("Craft", _button,
+                if (GUILayout.Button("Craft", _paperButton,
                         GUILayout.Width(w * 0.16f), GUILayout.MinHeight(h * 0.08f)))
                 {
                     if (crafting.Craft(recipe.Id)) GameAudio.Instance?.Play("sfx_pickup");
@@ -541,7 +595,7 @@ namespace HiddenValley.Unity
             }
 
             GUILayout.FlexibleSpace();
-            GUILayout.Label("tap anywhere to close", _footCenter);
+            GUILayout.Label("tap anywhere to close", _inkFoot);
             GUILayout.EndArea();
         }
 
@@ -608,7 +662,7 @@ namespace HiddenValley.Unity
             float slide = (1f - ease * ease) * h * 0.06f;
 
             var panel = new Rect(w * 0.08f, h * 0.62f + slide, w * 0.84f, h * 0.34f);
-            GUI.Box(panel, GUIContent.none);
+            GUI.Box(panel, GUIContent.none, _paper);
 
             // Portrait beside the speaker name when art exists.
             string portraitKey = node.Speaker != null && node.Speaker.StartsWith("npc.")
@@ -634,12 +688,12 @@ namespace HiddenValley.Unity
                 var def = _boot.Game.Content.Npc(speaker);
                 if (def != null && !string.IsNullOrEmpty(def.Name)) speaker = def.Name;
             }
-            if (!string.IsNullOrEmpty(speaker)) GUILayout.Label(speaker, _title);
+            if (!string.IsNullOrEmpty(speaker)) GUILayout.Label(speaker, _inkTitle);
 
             string visible = _typeFull;
             if (_typeChars < _typeFull.Length)
                 visible = _typeFull.Substring(0, Mathf.Clamp(_typeChars, 0, _typeFull.Length));
-            GUILayout.Label(visible, _label);
+            GUILayout.Label(visible, _ink);
 
             GUILayout.FlexibleSpace();
 
@@ -648,12 +702,12 @@ namespace HiddenValley.Unity
             if (lastLine && _choiceCache.Count > 0)
             {
                 for (int i = 0; i < _choiceCache.Count; i++)
-                    if (GUILayout.Button(_choiceCache[i].Text, _button, GUILayout.MinHeight(h * 0.07f)))
+                    if (GUILayout.Button(_choiceCache[i].Text, _paperButton, GUILayout.MinHeight(h * 0.07f)))
                         Choose(i);
             }
             else
             {
-                GUILayout.Label("▸", _hintRight);
+                GUILayout.Label("▸", _inkHint);
             }
 
             GUILayout.EndVertical();
@@ -663,29 +717,29 @@ namespace HiddenValley.Unity
         private void DrawReadable(float w, float h)
         {
             var panel = new Rect(w * 0.15f, h * 0.15f, w * 0.7f, h * 0.7f);
-            GUI.Box(panel, GUIContent.none);
+            GUI.Box(panel, GUIContent.none, _paper);
 
             var inner = new Rect(panel.x + w * 0.02f, panel.y + h * 0.02f,
                                  panel.width - w * 0.04f, panel.height - h * 0.04f);
             GUILayout.BeginArea(inner);
-            if (!string.IsNullOrEmpty(_readableTitle)) GUILayout.Label(_readableTitle, _title);
-            GUILayout.Label(_readableText, _label);
+            if (!string.IsNullOrEmpty(_readableTitle)) GUILayout.Label(_readableTitle, _inkTitle);
+            GUILayout.Label(_readableText, _ink);
             GUILayout.FlexibleSpace();
-            GUILayout.Label("tap to close", _footCenter);
+            GUILayout.Label("tap to close", _inkFoot);
             GUILayout.EndArea();
         }
 
         private void DrawBag(float w, float h)
         {
             var panel = new Rect(w * 0.2f, h * 0.15f, w * 0.6f, h * 0.7f);
-            GUI.Box(panel, GUIContent.none);
+            GUI.Box(panel, GUIContent.none, _paper);
 
             var inner = new Rect(panel.x + w * 0.02f, panel.y + h * 0.02f,
                                  panel.width - w * 0.04f, panel.height - h * 0.04f);
             GUILayout.BeginArea(inner);
-            GUILayout.Label("Bag", _title);
+            GUILayout.Label("Bag", _inkTitle);
 
-            if (_bagCache.Count == 0) GUILayout.Label("Nothing carried.", _label);
+            if (_bagCache.Count == 0) GUILayout.Label("Nothing carried.", _ink);
             else
             {
                 float icon = h * 0.07f;
@@ -696,7 +750,7 @@ namespace HiddenValley.Unity
                     var iconRect = GUILayoutUtility.GetRect(icon, icon, GUILayout.Width(icon), GUILayout.Height(icon));
                     if (tex != null) GUI.DrawTexture(iconRect, tex, ScaleMode.ScaleToFit);
                     else GUI.Box(iconRect, GUIContent.none);
-                    GUILayout.Label(_bagCache[i], _label, GUILayout.Height(icon));
+                    GUILayout.Label(_bagCache[i], _ink, GUILayout.Height(icon));
                     GUILayout.EndHorizontal();
                 }
             }
@@ -707,21 +761,21 @@ namespace HiddenValley.Unity
         private void DrawAccount(float w, float h)
         {
             var panel = new Rect(w * 0.12f, h * 0.1f, w * 0.76f, h * 0.8f);
-            GUI.Box(panel, GUIContent.none);
+            GUI.Box(panel, GUIContent.none, _paper);
 
             var inner = new Rect(panel.x + w * 0.02f, panel.y + h * 0.02f,
                                  panel.width - w * 0.04f, panel.height - h * 0.04f);
             GUILayout.BeginArea(inner);
-            GUILayout.Label("The Account", _title);
+            GUILayout.Label("The Account", _inkTitle);
 
             var clues = _boot.Game.KnownClues();
-            if (clues.Count == 0) GUILayout.Label("Nothing written yet.", _label);
+            if (clues.Count == 0) GUILayout.Label("Nothing written yet.", _ink);
             else
                 foreach (var clue in clues)
                 {
                     GUILayout.Space(h * 0.015f);
-                    GUILayout.Label(clue.Title, _title);
-                    GUILayout.Label(clue.Text, _label);
+                    GUILayout.Label(clue.Title, _inkTitle);
+                    GUILayout.Label(clue.Text, _ink);
                 }
 
             GUILayout.EndArea();

@@ -345,7 +345,11 @@ namespace HiddenValley.Unity
                 }
             }
 
-            if (total > 0) Debug.Log($"[HiddenValley] Scatter: {total} instances.");
+            if (total > 0)
+            {
+                root.AddComponent<WindSway>();
+                Debug.Log($"[HiddenValley] Scatter: {total} instances.");
+            }
         }
 
         private void SpawnScatterItem(Transform parent, string kind, Vector3 at, System.Random random)
@@ -356,6 +360,7 @@ namespace HiddenValley.Unity
             if (kind == "stone")
             {
                 go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                go.name = "stone";
                 go.transform.localScale = new Vector3(0.35f, 0.18f, 0.3f) * scale;
                 go.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("stone");
                 at.y += 0.06f;
@@ -363,11 +368,13 @@ namespace HiddenValley.Unity
             else // tuft: two crossed thin slabs
             {
                 go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.name = "tuft";
                 go.transform.localScale = new Vector3(0.3f, 0.22f, 0.035f) * scale;
                 go.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("moss");
                 at.y += 0.1f * scale;
 
                 var cross = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                cross.name = "tuft";
                 cross.transform.localScale = go.transform.localScale;
                 cross.transform.rotation = Quaternion.Euler(0, 90f, 0);
                 cross.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("moss");

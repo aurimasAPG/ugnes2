@@ -89,6 +89,25 @@ else
   echo "  brew install ios-deploy"
 fi
 
+# -- optional TestFlight lane -------------------------------------------------
+# HV_UPLOAD=1 archives and uploads instead of installing locally. Requires the paid
+# Apple Developer Program plus App Store Connect API auth in the environment:
+#   HV_ASC_KEY_ID, HV_ASC_ISSUER_ID and the .p8 at ~/.appstoreconnect/private_keys/.
+if [ "${HV_UPLOAD:-0}" = "1" ]; then
+  echo
+  echo "== TestFlight upload =="
+  xcodebuild -project "$HV_BUILD_DIR/Unity-iPhone.xcodeproj" -scheme Unity-iPhone \
+    -configuration Release -destination 'generic/platform=iOS' \
+    -archivePath "$BUILD_ROOT/HiddenValley.xcarchive" \
+    ${TEAM_ID:+DEVELOPMENT_TEAM="$TEAM_ID"} -allowProvisioningUpdates archive | tail -3
+  xcodebuild -exportArchive -archivePath "$BUILD_ROOT/HiddenValley.xcarchive" \
+    -exportOptionsPlist "$(dirname "$0")/exportOptions.plist" \
+    -exportPath "$BUILD_ROOT/export" -allowProvisioningUpdates | tail -3
+  xcrun altool --upload-app -f "$BUILD_ROOT/export/"*.ipa -t ios \
+    --apiKey "${HV_ASC_KEY_ID:?set HV_ASC_KEY_ID}" \
+    --apiIssuer "${HV_ASC_ISSUER_ID:?set HV_ASC_ISSUER_ID}"
+fi
+
 ELAPSED=$(( $(date +%s) - START ))
 echo
 echo "Total: ${ELAPSED}s"

@@ -496,6 +496,27 @@ confirm haptics, walk one dawn and one dusk.
 Verified: 50/50 tests; Mac player boots and runs; screenshots confirm the rigged
 characters and the dawn look. Device passes still owed by the owner.
 
+### 2026-08-08 — Full slice installed and running on the target device; final polish layer
+
+- **The complete game is on the iPhone 16 Pro and runs** (process verified via
+  `devicectl`): atmosphere, channel-spine village, character rigs, moth Pip, audio,
+  haptics build. Installed via `devicectl` — note for the record: ios-deploy's
+  device discovery no longer works on iOS 26; `build-ios.sh`'s install step should
+  migrate to devicectl next time it is touched.
+- **Wind sway** on the scatter field (staggered transform updates, ~170 writes/frame)
+  that stills to zero on Quietdays — the wrong morning is visible in the grass.
+- **Phase 4 paper-and-ink skin** applied to all five panels (generated deckle-edged
+  paper, ink text, paper choice buttons); floating HUD text stays light-on-world;
+  the input contract untouched.
+- **TestFlight lane**: `tools/exportOptions.plist` + guarded `HV_UPLOAD=1` archive/
+  export/upload stage in `build-ios.sh` — inert until the paid account exists.
+
+Verified: 50/50 tests, Mac player runs, device process alive. **What remains for the
+gates is play, not code**: the timed device pass, the two-person Phase 1 test, the
+on-device Phase 2 performance (`tools/phase2-gate-device.sh`, before 1 Sept), the
+stopwatch walk, the five-tester hook test, the recorded playthrough, the Apple
+Developer purchase, and the title sign-off (`docs/title-shortlist.md`).
+
 ---
 
 ## What the next session should do
