@@ -149,11 +149,18 @@ namespace HiddenValley.Unity
             var root = new GameObject("Pip") { layer = ActorLayer };
             root.transform.position = Pos(layout["pip"]?["pos"]);
 
-            // A moth, not an orb: small furred body, two wing quads flapped by
-            // PipCompanion (faster when the light thins), emissive-warm material.
+            // A moth, not an orb. Painted sprite when one exists; primitive moth
+            // (body + flapped wing quads) as fallback.
             var visual = new GameObject("Visual") { layer = ActorLayer };
             visual.transform.SetParent(root.transform, false);
 
+            var pipSprite = Resources.Load<Texture2D>("Art/Sprites/char_pip");
+            if (pipSprite != null)
+            {
+                CharacterRig.BuildSprite(visual.transform, "pip", pipSprite);
+            }
+            else
+            {
             var body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Body";
             body.layer = ActorLayer;
@@ -176,6 +183,7 @@ namespace HiddenValley.Unity
                 var wingRenderer = wing.GetComponent<MeshRenderer>();
                 wingRenderer.sharedMaterial = RuntimeArt.MaterialFor("pip");
                 wingRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
             }
 
             var lampGo = new GameObject("Lamp") { layer = ActorLayer };

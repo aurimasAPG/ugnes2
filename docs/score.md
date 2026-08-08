@@ -76,3 +76,12 @@ plan already names.
 ### Pass 7 — interact pulse (build-verified)
 Successful interactions answer with a squash pulse on the touched object —
 tap now lands in ear, hand, and eye. Feel 6 → **6.25**. **Overall ≈ 6.4.**
+
+### Pass 8 — the painted cast (Nano Banana Pro, screenshot-verified in-game)
+Player (hooded traveler), Vesk, Orrel, Coll and moth-Pip generated with
+gemini-3-pro-image-preview in one gouache style contract, alpha-cut via
+border flood-fill, shipped as lit cutout billboards (Don't Starve stance) at
+per-character statures. Defeated en route: the URP alpha-test variant
+stripping (cutout material must be a baked asset, not runtime-built).
+Sprite pipeline is repeatable: docs/systems-README + scratchpad prompts.
+Visual 6 → **7**. **Overall 6.5.**

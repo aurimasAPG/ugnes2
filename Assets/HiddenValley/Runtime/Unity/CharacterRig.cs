@@ -33,10 +33,21 @@ namespace HiddenValley.Unity
         };
 
         /// <summary>Builds the body as children of <paramref name="anchor"/>, stripping
-        /// any existing placeholder mesh/billboard from it first.</summary>
+        /// any existing placeholder mesh/billboard from it first. When a painted sprite
+        /// exists under Resources/Art/Sprites/char_{key}, it wins: a lit alpha-cutout
+        /// billboard (the Don't Starve stance — 2D characters in a 3D world read as art
+        /// direction when every character commits to it). The procedural rig remains the
+        /// fallback for keys with no painting yet.</summary>
         public static void Build(Transform anchor, string key)
         {
             if (anchor == null) return;
+
+            var sprite = Resources.Load<Texture2D>($"Art/Sprites/char_{key}");
+            if (sprite != null)
+            {
+                BuildSprite(anchor, key, sprite);
+                return;
+            }
 
             // Strip the placeholder capsule and any world billboard.
             var meshRenderer = anchor.GetComponent<MeshRenderer>();
@@ -97,6 +108,53 @@ namespace HiddenValley.Unity
                     charm.transform.localRotation = Quaternion.Euler(90, 0, 0);
                     break;
             }
+        }
+
+        /// <summary>Painted-sprite heights: silhouettes differ by stature too.</summary>
+        private static readonly Dictionary<string, float> SpriteHeight = new Dictionary<string, float>
+        {
+            ["player"] = 1.80f, ["vesk"] = 1.78f, ["orrel"] = 1.96f, ["coll"] = 1.58f, ["pip"] = 0.55f,
+        };
+
+        public static void BuildSprite(Transform anchor, string key, Texture2D sprite)
+        {
+            // Strip any placeholder mesh/billboard.
+            var meshRenderer = anchor.GetComponent<MeshRenderer>();
+            if (meshRenderer != null) Object.Destroy(meshRenderer);
+            var meshFilter = anchor.GetComponent<MeshFilter>();
+            if (meshFilter != null) Object.Destroy(meshFilter);
+            var oldPortrait = anchor.parent != null ? anchor.parent.Find("Portrait") : null;
+            if (oldPortrait != null) Object.Destroy(oldPortrait.gameObject);
+
+            anchor.localScale = Vector3.one;
+            anchor.localPosition = Vector3.zero;
+
+            float height = SpriteHeight.TryGetValue(key, out var h) ? h : 1.8f;
+            float width = height * ((float)sprite.width / sprite.height);
+
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = $"{key}.sprite";
+            quad.layer = anchor.gameObject.layer;
+            Object.Destroy(quad.GetComponent<Collider>());
+            quad.transform.SetParent(anchor, false);
+            quad.transform.localPosition = new Vector3(0, height / 2f, 0);
+            quad.transform.localScale = new Vector3(width, height, 1f);
+
+            // Lit + alpha clip via the SpriteLit material ASSET — instantiating the
+            // asset keeps the alpha-test variant that build stripping would otherwise
+            // remove (runtime-built materials render as opaque black slabs in players).
+            var template = Resources.Load<Material>("Art/SpriteLit");
+            var material = template != null
+                ? new Material(template)
+                : new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard"));
+            material.mainTexture = sprite;
+            if (material.HasProperty("_BaseMap")) material.SetTexture("_BaseMap", sprite);
+
+            var renderer = quad.GetComponent<MeshRenderer>();
+            renderer.material = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+
+            quad.AddComponent<Billboard>();
         }
 
         private static GameObject Part(Transform parent, int layer, PrimitiveType type,

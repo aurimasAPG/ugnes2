@@ -102,6 +102,25 @@ namespace HiddenValley.Editor
             }
             else Debug.LogWarning("[HiddenValley] GradientSkybox shader not found; sky will be default.");
 
+            // Character-sprite material template: URP Lit with alpha clip, configured as
+            // an ASSET so the alpha-test shader variant survives build stripping (a
+            // runtime-created material renders its cutout as an opaque black slab in
+            // players — same variant trap as the skybox).
+            const string spriteMatPath = "Assets/HiddenValley/Resources/Art/SpriteLit.mat";
+            var spriteMat = AssetDatabase.LoadAssetAtPath<UnityEngine.Material>(spriteMatPath);
+            if (spriteMat == null)
+            {
+                spriteMat = new UnityEngine.Material(Shader.Find("Universal Render Pipeline/Lit"));
+                AssetDatabase.CreateAsset(spriteMat, spriteMatPath);
+            }
+            spriteMat.SetFloat("_AlphaClip", 1f);
+            spriteMat.EnableKeyword("_ALPHATEST_ON");
+            spriteMat.SetFloat("_Cutoff", 0.45f);
+            spriteMat.SetFloat("_Cull", 0f);
+            spriteMat.SetFloat("_Smoothness", 0.05f);
+            spriteMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+            EditorUtility.SetDirty(spriteMat);
+
             GraphicsSettings.defaultRenderPipeline = pipeline;
             QualitySettings.renderPipeline = pipeline;
 
