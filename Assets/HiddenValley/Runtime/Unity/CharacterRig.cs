@@ -155,6 +155,51 @@ namespace HiddenValley.Unity
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             quad.AddComponent<Billboard>();
+
+            // Blob shadow: a soft dark disc grounds the cutout — billboards float
+            // visually without one, and they cast no real shadow.
+            var blob = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            blob.name = "Blob";
+            blob.layer = anchor.gameObject.layer;
+            Object.Destroy(blob.GetComponent<Collider>());
+            blob.transform.SetParent(anchor, false);
+            blob.transform.localPosition = new Vector3(0, 0.02f, 0);
+            blob.transform.localRotation = Quaternion.Euler(90, 0, 0);
+            blob.transform.localScale = Vector3.one * (height * 0.34f);
+
+            var blobShader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
+            var blobMat = new Material(blobShader);
+            blobMat.mainTexture = BlobTexture();
+            blobMat.SetOverrideTag("RenderType", "Transparent");
+            blobMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            blobMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            blobMat.SetInt("_ZWrite", 0);
+            if (blobMat.HasProperty("_Surface")) blobMat.SetFloat("_Surface", 1f);
+            blobMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            if (blobMat.HasProperty("_BaseColor")) blobMat.SetColor("_BaseColor", new Color(0, 0, 0, 0.35f));
+            else blobMat.color = new Color(0, 0, 0, 0.35f);
+            var blobRenderer = blob.GetComponent<MeshRenderer>();
+            blobRenderer.material = blobMat;
+            blobRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
+        private static Texture2D _blobTexture;
+
+        private static Texture2D BlobTexture()
+        {
+            if (_blobTexture != null) return _blobTexture;
+            const int size = 64;
+            _blobTexture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            float center = (size - 1) / 2f;
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float d = Vector2.Distance(new Vector2(x, y), new Vector2(center, center)) / center;
+                    float a = Mathf.Clamp01(1f - d);
+                    _blobTexture.SetPixel(x, y, new Color(1, 1, 1, a * a));
+                }
+            _blobTexture.Apply();
+            return _blobTexture;
         }
 
         private static GameObject Part(Transform parent, int layer, PrimitiveType type,

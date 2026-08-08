@@ -175,6 +175,13 @@ namespace HiddenValley.Unity
             var vignette = profile.Add<Vignette>();
             vignette.intensity.Override(vignetteIntensity);
 
+            // Gentle bloom: only true emitters (windows, Pip, embers) cross the
+            // threshold — the world itself must never glow.
+            var bloom = profile.Add<Bloom>();
+            bloom.threshold.Override(1.05f);
+            bloom.intensity.Override(0.55f);
+            bloom.scatter.Override(0.6f);
+
             volume.sharedProfile = profile;
         }
 

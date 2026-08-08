@@ -70,7 +70,10 @@ namespace HiddenValley.Editor
             // The frame budget is 16.7 ms on an iPhone 13 ([CONFIRM] #3, answered). These
             // are the knobs that spend it: no HDR target, MSAA 4x (near-free on TBDR GPUs,
             // and grey-box geometry aliases badly without it), short shadow range.
-            pipeline.supportsHDR = false;
+            // HDR is on for bloom — the emissive windows and Pip's lamp are the whole
+            // point of night. Cost re-measured on device; renderScale drops first if
+            // the budget objects.
+            pipeline.supportsHDR = true;
             pipeline.msaaSampleCount = 4;
             pipeline.renderScale = 1f;
 

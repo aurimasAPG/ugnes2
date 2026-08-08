@@ -85,3 +85,9 @@ per-character statures. Defeated en route: the URP alpha-test variant
 stripping (cutout material must be a baked asset, not runtime-built).
 Sprite pipeline is repeatable: docs/systems-README + scratchpad prompts.
 Visual 6 → **7**. **Overall 6.5.**
+
+### Pass 9 — HDR bloom + blob shadows (night screenshot-verified)
+Pip's moth carries a true bloom halo; windows glow soft across the dark;
+painted characters grounded by blob shadows. Watch item: Mac 1%-high hit
+17.6 ms with HDR — the device re-measure decides if renderScale gives it back.
+One hot lamp pane to tame. Visual 7 → **7.5**. **Overall 6.6.**
