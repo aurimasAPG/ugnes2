@@ -52,8 +52,20 @@ namespace HiddenValley.Editor
             // Static geometry only. World objects, NPCs and Pip are spawned at runtime by
             // LayoutSpawner from StreamingAssets/Layout/heartwood.json — packing them into
             // the scene produces a corrupted level0 (full-combination bisect, 2026-08-07).
+            // Kit entries expand into multi-primitive buildings; "runtime": true blocks
+            // (water) are skipped here and spawned live with their flow shader.
             foreach (var block in layout["blocks"] ?? new JArray())
-                Primitive((JObject)block, ((JObject)block)["name"]?.Value<string>() ?? "Block");
+            {
+                var spec = (JObject)block;
+                if (spec["runtime"]?.Value<bool>() == true) continue;
+                foreach (var piece in LayoutKits.Expand(spec))
+                    Primitive(piece, piece["name"]?.Value<string>() ?? "Block");
+            }
+
+            int pathIndex = 0;
+            foreach (var path in layout["paths"] ?? new JArray())
+                foreach (var piece in LayoutKits.ExpandPath((JObject)path, pathIndex++))
+                    Primitive(piece, piece["name"]?.Value<string>() ?? "Path");
 
             // Light — same single-sun rig as the grey-box room.
             var sunGo = new GameObject("Sun");

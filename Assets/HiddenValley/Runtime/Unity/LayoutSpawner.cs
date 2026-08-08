@@ -59,6 +59,11 @@ namespace HiddenValley.Unity
             foreach (var jn in layout["npcs"] ?? new JArray())
                 SpawnNpc((JObject)jn);
 
+            SpawnRuntimeBlocks(layout);
+            SpawnFx(layout);
+            SpawnZones(layout);
+            SpawnScatter(layout);
+
             float ms = (Time.realtimeSinceStartup - start) * 1000f;
             string summary =
                 $"[HiddenValley] Runtime layout spawn: {ms:0} ms — " +
@@ -170,6 +175,204 @@ namespace HiddenValley.Unity
             root.AddComponent<PipCompanion>().Configure(follow, lamp);
             root.AddComponent<NpcBinder>().Configure("npc.pip");
             SpawnedPip = true;
+        }
+
+        // ---- runtime water / fx / zones / scatter -----------------------------
+
+        /// <summary>Blocks tagged "runtime": true (water) spawn here with the flow shader
+        /// instead of serializing into the scene.</summary>
+        private void SpawnRuntimeBlocks(JObject layout)
+        {
+            foreach (var jt in layout["blocks"] ?? new JArray())
+            {
+                var spec = (JObject)jt;
+                if (spec["runtime"]?.Value<bool>() != true) continue;
+
+                var go = MakePrimitive(spec, spec["name"]?.Value<string>() ?? "Water");
+                var collider = go.GetComponent<Collider>();
+                if (collider != null) Destroy(collider); // you can wade; barriers are world objects
+
+                if ((spec["mat"]?.Value<string>() ?? "") == "water")
+                {
+                    go.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.WaterMaterial();
+                    var flow = spec["flow"] is JArray f && f.Count >= 2
+                        ? new Vector2(f[0].Value<float>(), f[1].Value<float>())
+                        : Vector2.zero;
+                    WaterFlow.Attach(go, flow, flow == Vector2.zero ? 0.008f : 0.03f);
+                }
+            }
+        }
+
+        /// <summary>"fx" fields on blocks and world objects: smoke columns, ember lights.</summary>
+        private void SpawnFx(JObject layout)
+        {
+            void Handle(JObject spec)
+            {
+                string fx = spec["fx"]?.Value<string>();
+                if (string.IsNullOrEmpty(fx)) return;
+
+                Vector3 at = Pos(spec["pos"]);
+                Vector3 size = Size(spec["size"], Vector3.one);
+
+                switch (fx)
+                {
+                    case "smoke":
+                        SpawnSmoke(at + Vector3.up * (size.y * 1.6f + 3.5f));
+                        break;
+                    case "emberlight":
+                        var host = GameObject.Find(spec["id"]?.Value<string>() ?? spec["name"]?.Value<string>() ?? "");
+                        FlickerLight.Attach(host != null ? host : gameObject,
+                            new Color(1f, 0.62f, 0.32f), 1.6f, 9f);
+                        break;
+                }
+            }
+
+            foreach (var jt in layout["blocks"] ?? new JArray()) Handle((JObject)jt);
+            foreach (var jt in layout["worldObjects"] ?? new JArray()) Handle((JObject)jt);
+        }
+
+        /// <summary>The kiln smoke column — a landmark readable from the village entrance,
+        /// and narratively load-bearing (smoke presence is story signal).</summary>
+        private void SpawnSmoke(Vector3 at)
+        {
+            var go = new GameObject("Smoke");
+            go.transform.position = at;
+
+            var system = go.AddComponent<ParticleSystem>();
+            var main = system.main;
+            main.startLifetime = 9f;
+            main.startSpeed = 0.9f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.8f, 1.4f);
+            main.startColor = new Color(0.62f, 0.62f, 0.64f, 0.35f);
+            main.maxParticles = 40;
+
+            var emission = system.emission;
+            emission.rateOverTime = 3.5f;
+
+            var shape = system.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 8f;
+            shape.radius = 0.25f;
+
+            var velocity = system.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.x = new ParticleSystem.MinMaxCurve(0.25f); // drift with the prevailing wind
+
+            var sizeOverLife = system.sizeOverLifetime;
+            sizeOverLife.enabled = true;
+            sizeOverLife.size = new ParticleSystem.MinMaxCurve(
+                1f, AnimationCurve.Linear(0, 0.4f, 1, 1.6f));
+
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            var shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Sprites/Default");
+            if (shader != null)
+            {
+                var material = new Material(shader);
+                if (material.HasProperty("_BaseColor"))
+                    material.SetColor("_BaseColor", new Color(1, 1, 1, 0.3f));
+                renderer.material = material;
+            }
+        }
+
+        private void SpawnZones(JObject layout)
+        {
+            foreach (var jt in layout["zones"] ?? new JArray())
+            {
+                var spec = (JObject)jt;
+                if (spec["bounds"] is not JArray b || b.Count < 6) continue;
+
+                ZoneAmbience.Spawn(
+                    spec["id"]?.Value<string>() ?? "zone",
+                    new Vector3(b[0].Value<float>(), b[1].Value<float>(), b[2].Value<float>()),
+                    new Vector3(b[3].Value<float>(), b[4].Value<float>(), b[5].Value<float>()),
+                    Tint(spec["fogTint"]),
+                    spec["fogDensityMul"]?.Value<float>() ?? 1f,
+                    Tint(spec["ambientTint"]));
+            }
+        }
+
+        private static Color Tint(JToken t)
+        {
+            if (t is not JArray a || a.Count < 3) return Color.white;
+            return new Color(a[0].Value<float>(), a[1].Value<float>(), a[2].Value<float>());
+        }
+
+        /// <summary>
+        /// Seeded ground cover — deterministic from the seed so every walk sees the same
+        /// world. No colliders, no shadows; a capped count of tiny primitives.
+        /// </summary>
+        private void SpawnScatter(JObject layout)
+        {
+            var root = new GameObject("Scatter");
+            int total = 0;
+
+            foreach (var jt in layout["scatter"] ?? new JArray())
+            {
+                var spec = (JObject)jt;
+                if (spec["region"] is not JArray r || r.Count < 4) continue;
+
+                float cx = r[0].Value<float>(), cz = r[1].Value<float>();
+                float w = r[2].Value<float>(), d = r[3].Value<float>();
+                float y = spec["y"]?.Value<float>() ?? 0f;
+                int count = Mathf.Min(spec["count"]?.Value<int>() ?? 100, 600);
+                var random = new System.Random(spec["seed"]?.Value<int>() ?? 1);
+
+                var items = new List<string>();
+                foreach (var item in spec["items"] as JArray ?? new JArray("tuft"))
+                    items.Add(item.Value<string>());
+
+                for (int i = 0; i < count; i++)
+                {
+                    float x = cx + ((float)random.NextDouble() - 0.5f) * w;
+                    float z = cz + ((float)random.NextDouble() - 0.5f) * d;
+                    string kind = items[random.Next(items.Count)];
+                    SpawnScatterItem(root.transform, kind, new Vector3(x, y, z), random);
+                    total++;
+                }
+            }
+
+            if (total > 0) Debug.Log($"[HiddenValley] Scatter: {total} instances.");
+        }
+
+        private void SpawnScatterItem(Transform parent, string kind, Vector3 at, System.Random random)
+        {
+            GameObject go;
+            float scale = 0.7f + (float)random.NextDouble() * 0.7f;
+
+            if (kind == "stone")
+            {
+                go = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                go.transform.localScale = new Vector3(0.35f, 0.18f, 0.3f) * scale;
+                go.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("stone");
+                at.y += 0.06f;
+            }
+            else // tuft: two crossed thin slabs
+            {
+                go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                go.transform.localScale = new Vector3(0.3f, 0.22f, 0.035f) * scale;
+                go.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("moss");
+                at.y += 0.1f * scale;
+
+                var cross = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                cross.transform.localScale = go.transform.localScale;
+                cross.transform.rotation = Quaternion.Euler(0, 90f, 0);
+                cross.GetComponent<MeshRenderer>().sharedMaterial = RuntimeArt.MaterialFor("moss");
+                Prep(cross, at, parent);
+            }
+
+            go.transform.rotation = Quaternion.Euler(0, (float)random.NextDouble() * 360f, 0);
+            Prep(go, at, parent);
+        }
+
+        private static void Prep(GameObject go, Vector3 at, Transform parent)
+        {
+            go.transform.position = at;
+            go.transform.SetParent(parent, true);
+            var collider = go.GetComponent<Collider>();
+            if (collider != null) Destroy(collider);
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
         }
 
         // ---- primitives / materials -------------------------------------------

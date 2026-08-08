@@ -100,8 +100,17 @@ namespace HiddenValley.Unity
         private GameBootstrap _boot;
         private int _lastMinute = -1;
 
+        private PhasePalette _palette = Day;
+        private ZoneAmbience _zone;
+        private float _zoneWeight;
+        private float _muteTarget;
+        private ParticleSystem _ashfall;
+
         /// <summary>Extra mute for Quietday and similar authored states (0 = normal).</summary>
         public float Mute { get; set; }
+
+        public void EnterZone(ZoneAmbience zone) => _zone = zone;
+        public void ExitZone(ZoneAmbience zone) { if (_zone == zone) _zone = null; }
 
         public static AtmosphereRig Spawn()
         {
@@ -174,31 +183,122 @@ namespace HiddenValley.Unity
             var clock = _boot?.Game?.State.Clock;
             if (clock == null) return;
 
-            // Step per game-minute, not per frame — shadow maps re-render only when the
-            // sun actually moves, and one game-minute is well under a degree.
-            if (clock.Minute == _lastMinute) return;
-            _lastMinute = clock.Minute;
-            ApplyNow();
+            // The sun (and its shadow re-render) steps per game-minute; colors and fog
+            // are plain RenderSettings writes and lerp every frame for smooth zone and
+            // Quietday transitions.
+            if (clock.Minute != _lastMinute)
+            {
+                _lastMinute = clock.Minute;
+                _palette = Blend(clock.Minute, clock.Settings);
+                UpdateQuietday();
+                ApplySun(clock);
+            }
+
+            float dt = Time.deltaTime;
+            _zoneWeight = Mathf.MoveTowards(_zoneWeight, _zone != null ? 1f : 0f, dt * 0.8f);
+            Mute = Mathf.MoveTowards(Mute, _muteTarget, dt * 0.25f);
+            UpdateAshfall();
+            ApplyFrame();
+        }
+
+        /// <summary>
+        /// The valley feels wrong while the question is open: once the scorched bark is
+        /// read and until the mystery resolves, the light goes flat and grey. This is the
+        /// world bible's Quietday made visible without a single line of UI.
+        /// </summary>
+        private void UpdateQuietday()
+        {
+            var state = _boot?.Game?.State;
+            if (state == null) return;
+            bool open = state.GetBoolFlag("bark.read") && !state.GetBoolFlag("mystery.resolved");
+            _muteTarget = open ? 0.6f : 0f;
+        }
+
+        private void UpdateAshfall()
+        {
+            bool wanted = Mute > 0.3f;
+            if (wanted && _ashfall == null) _ashfall = SpawnAshfall();
+            if (_ashfall == null) return;
+
+            var emission = _ashfall.emission;
+            emission.enabled = wanted;
+        }
+
+        /// <summary>Sparse ash drifting onto the eastern leaves — clue 1, visible.</summary>
+        private ParticleSystem SpawnAshfall()
+        {
+            var go = new GameObject("Ashfall");
+            go.transform.SetParent(transform, false);
+            go.transform.position = new Vector3(12f, 14f, 80f);
+
+            var system = go.AddComponent<ParticleSystem>();
+            var main = system.main;
+            main.startLifetime = 14f;
+            main.startSpeed = 0.35f;
+            main.startSize = 0.07f;
+            main.startColor = new Color(0.72f, 0.70f, 0.68f, 0.8f);
+            main.maxParticles = 200;
+            main.gravityModifier = 0.015f;
+
+            var shape = system.shape;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(34f, 1f, 34f);
+
+            var emission = system.emission;
+            emission.rateOverTime = 9f;
+
+            var renderer = go.GetComponent<ParticleSystemRenderer>();
+            var shader = Shader.Find("Universal Render Pipeline/Unlit")
+                         ?? Shader.Find("Sprites/Default");
+            if (shader != null) renderer.material = new Material(shader);
+
+            return system;
         }
 
         private void ApplyNow()
         {
             var clock = _boot?.Game?.State.Clock;
             if (clock == null) return;
+            _lastMinute = clock.Minute;
+            _palette = Blend(clock.Minute, clock.Settings);
+            UpdateQuietday();
+            ApplySun(clock);
+            ApplyFrame();
+        }
 
-            var settings = clock.Settings;
-            float minute = clock.Minute;
-
-            // Piecewise blend: each boundary owns a transition window after it starts.
-            PhasePalette palette = Blend(minute, settings);
+        private void ApplyFrame()
+        {
+            PhasePalette palette = _palette;
 
             float mute = Mathf.Clamp01(Mute);
-            Color grey = new Color(0.62f, 0.63f, 0.64f);
-            palette.skyTop = Color.Lerp(palette.skyTop, grey * 0.9f, mute);
-            palette.skyHorizon = Color.Lerp(palette.skyHorizon, grey, mute);
-            palette.sunColor = Color.Lerp(palette.sunColor, grey, mute * 0.8f);
-            palette.sunIntensity = Mathf.Lerp(palette.sunIntensity, 0.55f, mute);
-            palette.fogDensity = Mathf.Lerp(palette.fogDensity, 0.02f, mute);
+            if (mute > 0.001f)
+            {
+                Color grey = new Color(0.62f, 0.63f, 0.64f);
+                palette.skyTop = Color.Lerp(palette.skyTop, grey * 0.9f, mute);
+                palette.skyHorizon = Color.Lerp(palette.skyHorizon, grey, mute);
+                palette.sunColor = Color.Lerp(palette.sunColor, grey, mute * 0.8f);
+                palette.sunIntensity = Mathf.Lerp(palette.sunIntensity, 0.55f, mute);
+                palette.fogDensity = Mathf.Lerp(palette.fogDensity, 0.02f, mute);
+
+                if (_sun != null)
+                {
+                    _sun.color = palette.sunColor;
+                    _sun.intensity = palette.sunIntensity;
+                }
+            }
+
+            // Zone tint (upper shelf cool, lower shelf warm) rides on fog + ambient only.
+            if (_zoneWeight > 0.001f && _zone != null)
+            {
+                float w = _zoneWeight;
+                Color tint = Color.Lerp(Color.white, _zone.FogTint, w);
+                palette.skyHorizon *= tint;
+                palette.fogDensity *= Mathf.Lerp(1f, _zone.FogDensityMul, w);
+                Color ambient = Color.Lerp(Color.white, _zone.AmbientTint, w);
+                palette.ambientSky *= ambient;
+                palette.ambientEquator *= ambient;
+                palette.ambientGround *= ambient;
+            }
 
             if (_skybox != null)
             {
@@ -212,17 +312,19 @@ namespace HiddenValley.Unity
             RenderSettings.ambientSkyColor = palette.ambientSky;
             RenderSettings.ambientEquatorColor = palette.ambientEquator;
             RenderSettings.ambientGroundColor = palette.ambientGround;
+        }
 
-            if (_sun != null)
-            {
-                _sun.color = palette.sunColor;
-                _sun.intensity = palette.sunIntensity;
+        private void ApplySun(Clock clock)
+        {
+            if (_sun == null) return;
 
-                // Azimuth sweeps the day arc east→west; elevation comes from the palette.
-                float t = clock.NormalisedTime;
-                float azimuth = Mathf.Lerp(70f, 290f, t);
-                _sun.transform.rotation = Quaternion.Euler(palette.sunElevation, azimuth, 0f);
-            }
+            _sun.color = _palette.sunColor;
+            _sun.intensity = _palette.sunIntensity;
+
+            // Azimuth sweeps the day arc east→west; elevation comes from the palette.
+            float t = clock.NormalisedTime;
+            float azimuth = Mathf.Lerp(70f, 290f, t);
+            _sun.transform.rotation = Quaternion.Euler(_palette.sunElevation, azimuth, 0f);
         }
 
         private static PhasePalette Blend(float minute, ClockSettings s)

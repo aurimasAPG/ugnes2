@@ -81,6 +81,37 @@ namespace HiddenValley.Unity
             return material;
         }
 
+        private static Material _waterMaterial;
+
+        /// <summary>
+        /// Transparent flowing water. Translucency is functionally load-bearing: the
+        /// drowned lens — the slice's one undocumented solution — must be visible
+        /// through the pool surface to be findable "by anyone who looks in the water".
+        /// </summary>
+        public static Material WaterMaterial()
+        {
+            if (_waterMaterial != null) return _waterMaterial;
+
+            var material = new Material(MaterialFor("water")); // copy: base stays opaque
+            material.SetFloat("_Surface", 1f); // URP Lit: transparent
+            material.SetFloat("_Blend", 0f);
+            material.SetOverrideTag("RenderType", "Transparent");
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.SetInt("_ZWrite", 0);
+            material.DisableKeyword("_ALPHATEST_ON");
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            material.SetShaderPassEnabled("ShadowCaster", false);
+
+            var color = material.color;
+            color.a = 0.72f;
+            material.color = color;
+
+            _waterMaterial = material;
+            return _waterMaterial;
+        }
+
         public static Texture2D Icon(string itemId)
         {
             if (string.IsNullOrEmpty(itemId)) return null;
