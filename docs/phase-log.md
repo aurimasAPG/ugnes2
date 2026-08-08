@@ -517,6 +517,20 @@ on-device Phase 2 performance (`tools/phase2-gate-device.sh`, before 1 Sept), th
 stopwatch walk, the five-tester hook test, the recorded playthrough, the Apple
 Developer purchase, and the title sign-off (`docs/title-shortlist.md`).
 
+### 2026-08-08 — FIRST ON-DEVICE MEASUREMENTS, captured by the game itself
+
+The self-measuring build launched on the iPhone 16 Pro via the unlock-trap loop and
+wrote its own numbers: **33.3 ms steady, worst 36.4 ms, p99 34.4 ms, 90 MB.**
+A perfectly steady 33.3 ms is a cap, not a struggle — Unity's iOS default
+`targetFrameRate` is 30. Fixed (`Application.targetFrameRate = 60` in bootstrap);
+the 60fps build is compiled and armed to auto-install + re-measure the moment the
+phone (currently unplugged) reconnects.
+
+This is exactly the class of finding the device-pass rule exists for: invisible in
+the editor, invisible on the Mac, real on the phone. The 60 fps verdict against the
+16.7 ms budget is the reconnect-trap's output; until it lands, quality dimension #1
+remains UNMEASURED at 60.
+
 ---
 
 ## What the next session should do

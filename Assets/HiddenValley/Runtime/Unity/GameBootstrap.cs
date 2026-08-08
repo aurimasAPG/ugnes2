@@ -51,6 +51,11 @@ namespace HiddenValley.Unity
             Instance = this;
             DontDestroyOnLoad(gameObject);
 
+            // Unity's iOS default is a 30fps cap; the mission's first quality dimension
+            // is 60 on device. Found by the on-device telemetry: a perfectly steady
+            // 33.3 ms is a cap, not a struggle.
+            Application.targetFrameRate = 60;
+
             try
             {
                 Debug.Log($"[HiddenValley] Loading content from {ContentPath}");
