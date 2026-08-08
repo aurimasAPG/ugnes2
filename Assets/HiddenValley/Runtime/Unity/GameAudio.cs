@@ -168,17 +168,38 @@ namespace HiddenValley.Unity
             }
         }
 
+        private bool _gaitHooked;
+
         private void Update()
         {
             if (_player == null) _player = FindFirstObjectByType<PlayerController>();
-            if (_player == null || !_player.IsMovingOnGround) return;
+            if (_player == null) return;
+
+            // Prefer footsteps clocked by the visible gait (CapsuleAnimator) — sound and
+            // motion sharing one clock is what "feels solid" is made of. The timer path
+            // stays as fallback for a player without an animator.
+            if (!_gaitHooked)
+            {
+                var animator = _player.GetComponent<CapsuleAnimator>();
+                if (animator != null)
+                {
+                    animator.Footstep += OnFootstep;
+                    _gaitHooked = true;
+                }
+            }
+            if (_gaitHooked) return;
+
+            if (!_player.IsMovingOnGround) return;
             if (Time.time < _nextFootstep) return;
 
-            Play("sfx_footstep", _feet, 0.7f + Random.Range(-0.05f, 0.05f));
+            OnFootstep();
             float pace = Mathf.Lerp(footstepInterval * 1.15f, footstepInterval * 0.72f,
                 Mathf.Clamp01(_player.NormalizedSpeed));
             _nextFootstep = Time.time + pace;
         }
+
+        private void OnFootstep()
+            => Play("sfx_footstep", _feet, 0.7f + Random.Range(-0.05f, 0.05f));
 
         private void OnGameChanged()
         {

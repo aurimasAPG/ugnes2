@@ -60,6 +60,10 @@ namespace HiddenValley.Unity
 
             _boot.Changed += Refresh;
             Refresh();
+
+            var visual = transform.Find("Visual");
+            if (visual != null && GetComponent<CapsuleAnimator>() == null)
+                CapsuleAnimator.Attach(visual);
         }
 
         private void OnDestroy()

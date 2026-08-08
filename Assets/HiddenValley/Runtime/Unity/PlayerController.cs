@@ -41,9 +41,19 @@ namespace HiddenValley.Unity
         public bool IsMovingOnGround =>
             _cc != null && _cc.isGrounded && _planarVelocity.sqrMagnitude > 0.05f;
 
+        public bool IsGrounded => _cc != null && _cc.isGrounded;
+
         private void Awake()
         {
             _cc = GetComponent<CharacterController>();
+        }
+
+        private void Start()
+        {
+            // Procedural life rides on the visual child, attached from code only —
+            // scene-serialized additions are the level0-corruption vector.
+            var visual = transform.Find("Visual");
+            if (visual != null) CapsuleAnimator.Attach(visual, this);
         }
 
         private void Update()
