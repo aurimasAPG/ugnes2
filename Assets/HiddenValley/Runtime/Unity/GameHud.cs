@@ -44,6 +44,7 @@ namespace HiddenValley.Unity
         private bool _accountOpen;
         private bool _pauseOpen;
         private bool _pauseArgChecked;
+        private bool _talkArgChecked;
 
         /// <summary>Station id while the crafting panel is open; null when closed.
         /// Opened by content setting the ui.open_crafting flag (e.g. the kiln).</summary>
@@ -147,11 +148,32 @@ namespace HiddenValley.Unity
             // Dev hook, sibling of -hvminute: "-hvpause" opens the pause panel on the
             // first frame so it can be screenshot-verified on a machine where sending
             // a keystroke to the player is not permitted.
+            // NPCs are runtime-spawned, so the talk hook has to wait for them; the pause
+            // hook does not.
             if (!_pauseArgChecked)
             {
                 _pauseArgChecked = true;
                 foreach (var arg in System.Environment.GetCommandLineArgs())
                     if (arg == "-hvpause") { TogglePause(); break; }
+            }
+
+            // "-hvtalk npc.vesk" opens that NPC's conversation, ignoring range and
+            // facing. The dialogue panel and its VO are otherwise unverifiable without
+            // walking up to someone by hand.
+            if (!_talkArgChecked && _npcs.Length > 0)
+            {
+                _talkArgChecked = true;
+                var argv = System.Environment.GetCommandLineArgs();
+                for (int i = 0; i < argv.Length - 1; i++)
+                {
+                    if (argv[i] != "-hvtalk") continue;
+                    foreach (var candidate in _npcs)
+                        if (candidate != null && candidate.Def != null && candidate.Id == argv[i + 1])
+                        {
+                            BeginTalk(candidate);
+                            break;
+                        }
+                }
             }
 
             if (controls != null)

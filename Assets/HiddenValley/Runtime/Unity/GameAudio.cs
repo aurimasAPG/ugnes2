@@ -389,10 +389,17 @@ namespace HiddenValley.Unity
                     _voice.clip = vo;
                     _voice.volume = Mathf.Clamp01(masterVolume * voiceVolume);
                     _voice.Play();
+                    Debug.Log($"[HiddenValley] VO {clipId} ({vo.length:0.0}s) at vol {_voice.volume:0.00} for {speaker}.");
                     return;
                 }
             }
 
+            // Falling back is not neutral: it means this line has no read, or the map key
+            // drifted from the content text. Say which, so a silent-sounding cast is a
+            // log line rather than a guess.
+            Debug.LogWarning(string.IsNullOrEmpty(clipId)
+                ? $"[HiddenValley] No VO mapped for {speaker}: \"{CleanLineForVoice(lineText)}\" — falling back to the speaker cue."
+                : $"[HiddenValley] VO clip '{clipId}' failed to load for {speaker} — falling back to the speaker cue.");
             Play(DialogueClipForSpeaker(speaker));
         }
 

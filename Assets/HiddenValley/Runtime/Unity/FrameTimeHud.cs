@@ -148,9 +148,11 @@ namespace HiddenValley.Unity
                 $"1% hi {OnePercentHighMs():00.0} ms\n" +
                 $"mem  {memMb:0} MB";
 
-            // Lower left: the top row belongs to Menu/Bag/Account, and a readout that
-            // sits on the Menu button is a readout you turn off instead of reading.
-            var rect = new Rect(Screen.width * 0.02f, Screen.height * 0.66f,
+            // Mid-left, which is the only band nothing else claims: the top row belongs to
+            // Menu/Bag/Account and the bottom to the dialogue panel. Both were tried and
+            // both collided — a readout printed over Vesk's first line is worse than no
+            // readout, because it makes the dialogue look broken.
+            var rect = new Rect(Screen.width * 0.02f, Screen.height * 0.34f,
                                 Screen.width * 0.5f, Screen.height * 0.3f);
 
             GUI.Label(rect, text, _style);
