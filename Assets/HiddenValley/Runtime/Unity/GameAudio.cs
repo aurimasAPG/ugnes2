@@ -17,11 +17,28 @@ namespace HiddenValley.Unity
     {
         public static GameAudio Instance { get; private set; }
 
-        [SerializeField] private float masterVolume = 0.85f;
-        [SerializeField] private float voiceVolume = 1f;
+        // The authored mix. The player's Settings sliders scale it rather than replace
+        // it, so the balance between beds survives whatever they choose.
+        [SerializeField] private float masterVolumeBase = 0.85f;
+        [SerializeField] private float voiceVolumeBase = 1f;
         [SerializeField] private float ambienceVolume = 0.28f;
         [SerializeField] private float musicVolume = 0.4f;
         [SerializeField] private float footstepInterval = 0.38f;
+
+        // Read every frame by the ambience/water/night easing below, so a slider drag
+        // is audible while it is being dragged.
+        private float masterVolume => masterVolumeBase * GameSettings.Master;
+        private float voiceVolume => voiceVolumeBase * GameSettings.Voice;
+
+        /// <summary>Re-applies volumes to the sources that are set once rather than eased
+        /// per frame. Called by <see cref="GameSettings"/> when a slider moves.</summary>
+        public void ApplyVolumes()
+        {
+            if (_oneshot != null) _oneshot.volume = masterVolume;
+            if (_feet != null) _feet.volume = masterVolume * 0.55f;
+            if (_voice != null) _voice.volume = masterVolume * voiceVolume;
+            if (_music != null) _music.volume = masterVolume * musicVolume;
+        }
 
         private AudioSource _oneshot;
         private AudioSource _feet;

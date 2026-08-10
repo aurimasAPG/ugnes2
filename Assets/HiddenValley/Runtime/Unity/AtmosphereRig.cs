@@ -61,6 +61,11 @@ namespace HiddenValley.Unity
             sunElevation = 14f,
         };
 
+        // Measured, not guessed (pass 11): open ground photographs at 0.29–0.44 sRGB and
+        // roofs at 0.19. The day frame *reads* washed out, but that is simultaneous
+        // contrast against near-black facades, not an over-exposed ground — an earlier
+        // exposure cut here was reverted once the pixels were sampled. The imbalance to
+        // fix lives in the building albedos, not in this palette.
         private static readonly PhasePalette Day = new PhasePalette
         {
             skyTop = new Color(0.42f, 0.51f, 0.62f),

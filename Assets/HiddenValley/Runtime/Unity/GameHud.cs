@@ -42,6 +42,8 @@ namespace HiddenValley.Unity
 
         private bool _bagOpen;
         private bool _accountOpen;
+        private bool _pauseOpen;
+        private bool _pauseArgChecked;
 
         /// <summary>Station id while the crafting panel is open; null when closed.
         /// Opened by content setting the ui.open_crafting flag (e.g. the kiln).</summary>
@@ -96,6 +98,8 @@ namespace HiddenValley.Unity
         private void OnDestroy()
         {
             if (_boot != null) _boot.Changed -= OnGameChanged;
+            // Never leave the world frozen because the HUD went away mid-pause.
+            if (_pauseOpen) Time.timeScale = 1f;
         }
 
         private void OnGameChanged()
@@ -140,9 +144,22 @@ namespace HiddenValley.Unity
             // NPCs/Pip are runtime-spawned; re-scan if the first Start ran empty.
             if (_npcs.Length == 0) RefreshNpcs();
 
+            // Dev hook, sibling of -hvminute: "-hvpause" opens the pause panel on the
+            // first frame so it can be screenshot-verified on a machine where sending
+            // a keystroke to the player is not permitted.
+            if (!_pauseArgChecked)
+            {
+                _pauseArgChecked = true;
+                foreach (var arg in System.Environment.GetCommandLineArgs())
+                    if (arg == "-hvpause") { TogglePause(); break; }
+            }
+
             if (controls != null)
-                controls.Locked = _session != null || _readableText != null
+                controls.Locked = _pauseOpen || _session != null || _readableText != null
                     || _bagOpen || _accountOpen || _craftingStation != null;
+
+            // Esc pauses on desktop; the Menu button is the only route on a phone.
+            if (Input.GetKeyDown(KeyCode.Escape)) TogglePause();
 
             if (_session != null && _typeChars < _typeFull.Length && Time.unscaledTime >= _typeNext)
             {
@@ -212,6 +229,10 @@ namespace HiddenValley.Unity
 
         private bool ContextAction()
         {
+            // Paused is a hard mode: the context button must not reach through the panel
+            // and advance a line or pick something up. Consume the tap and say so.
+            if (_pauseOpen) return true;
+
             if (_readableText != null)
             {
                 _readableText = null;
@@ -461,6 +482,19 @@ namespace HiddenValley.Unity
             _paperButton.normal.textColor = inkColor;
             _paperButton.hover.textColor = inkColor;
             _paperButton.active.textColor = new Color(0.4f, 0.2f, 0.1f);
+
+        }
+
+        private static readonly Dictionary<Color, Texture2D> _flats = new Dictionary<Color, Texture2D>();
+
+        private static Texture2D FlatTexture(Color color)
+        {
+            if (_flats.TryGetValue(color, out var cached) && cached != null) return cached;
+            var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            tex.SetPixel(0, 0, color);
+            tex.Apply();
+            _flats[color] = tex;
+            return tex;
         }
 
         private GUIStyle _labelRight, _hintRight, _footCenter;
@@ -505,7 +539,8 @@ namespace HiddenValley.Unity
             DrawClockAndTracker(w, h);
             DrawToggles(w, h);
 
-            if (_session != null) DrawDialogue(w, h);
+            if (_pauseOpen) DrawPause(w, h);
+            else if (_session != null) DrawDialogue(w, h);
             else if (_readableText != null) DrawReadable(w, h);
             else if (_craftingStation != null) DrawCrafting(w, h);
             else if (_bagOpen) DrawBag(w, h);
@@ -610,9 +645,12 @@ namespace HiddenValley.Unity
 
         private void DrawToggles(float w, float h)
         {
-            if (_session != null) return;
+            if (_session != null || _pauseOpen) return;
 
             float bw = w * 0.14f, bh = h * 0.09f;
+            if (GUI.Button(new Rect(w * 0.10f, h * 0.02f, bw, bh), "Menu", _button))
+                TogglePause();
+
             if (GUI.Button(new Rect(w * 0.26f, h * 0.02f, bw, bh), "Bag", _button))
             {
                 bool opening = !_bagOpen;
@@ -629,6 +667,183 @@ namespace HiddenValley.Unity
                 if (_accountOpen && opening) GameAudio.Instance?.UiOpen();
                 else if (!_accountOpen) GameAudio.Instance?.UiClose();
             }
+        }
+
+        // ---- pause and settings ------------------------------------------------
+
+        private void TogglePause()
+        {
+            _pauseOpen = !_pauseOpen;
+
+            if (_pauseOpen)
+            {
+                // Close whatever else was up so there is exactly one modal.
+                _bagOpen = _accountOpen = false;
+                _craftingStation = null;
+                _readableText = null;
+                _readableTitle = null;
+                _panelOpenedAt = Time.unscaledTime;
+                Time.timeScale = 0f;
+                GameAudio.Instance?.UiOpen();
+            }
+            else
+            {
+                Time.timeScale = 1f;
+                GameSettings.Flush();       // one disk write per visit, not per drag
+                GameAudio.Instance?.UiClose();
+            }
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            // Backgrounding while paused must not strand timeScale at 0 on resume.
+            if (paused) GameSettings.Flush();
+        }
+
+        private void DrawPause(float w, float h)
+        {
+            if (_dimTexture == null)
+            {
+                _dimTexture = new Texture2D(1, 1);
+                _dimTexture.SetPixel(0, 0, new Color(0, 0, 0, 0.45f));
+                _dimTexture.Apply();
+            }
+            GUI.DrawTexture(new Rect(0, 0, w, h), _dimTexture);
+
+            var panel = new Rect(w * 0.2f, h * 0.16f, w * 0.6f, h * 0.66f);
+            GUI.Box(panel, GUIContent.none, _paper);
+
+            var inner = new Rect(panel.x + w * 0.03f, panel.y + h * 0.03f,
+                                 panel.width - w * 0.06f, panel.height - h * 0.06f);
+            float iw = inner.width;   // rows are proportioned to the panel, not the screen
+            GUILayout.BeginArea(inner);
+
+            // The pause title is in the world's voice, not the menu's.
+            GUILayout.Label("The valley waits", _inkTitle);
+            GUILayout.Space(h * 0.02f);
+
+            float sliderH = h * 0.055f;
+            GameSettings.Master = LabelledSlider("Sound", GameSettings.Master, h, iw, sliderH);
+            GameSettings.Voice = LabelledSlider("Voices", GameSettings.Voice, h, iw, sliderH);
+
+            GUILayout.Space(h * 0.015f);
+
+            bool haptics = LabelledSwitch("Haptics", GameSettings.HapticsOn, h, iw);
+            if (haptics != GameSettings.HapticsOn)
+            {
+                GameSettings.HapticsOn = haptics;
+                // Confirm by doing the thing: switching on buzzes, switching off is
+                // silent, and the silence is its own answer.
+                if (haptics) Haptics.Light();
+            }
+
+            GameSettings.FrameHud = LabelledSwitch("Frame times", GameSettings.FrameHud, h, iw);
+
+            GUILayout.FlexibleSpace();
+
+            if (GUILayout.Button("Save now", _paperButton, GUILayout.Height(h * 0.085f)))
+            {
+                _boot.SaveToDisk();
+                GameSettings.Flush();
+                Toast("Written down.");
+                Haptics.Success();
+            }
+            GUILayout.Space(h * 0.012f);
+            if (GUILayout.Button("Back to the valley", _paperButton, GUILayout.Height(h * 0.085f)))
+                TogglePause();
+
+            GUILayout.EndArea();
+        }
+
+        /// <summary>A row of ink label + hand-drawn track, with the value spoken as a
+        /// percentage so it is readable at arm's length on a phone.
+        ///
+        /// Drawn and hit-tested here rather than via GUI.skin.horizontalSlider: the
+        /// skinned slider gives a hairline track and a mouse-sized thumb, and the touch
+        /// target has to be a finger tall even though the ink line is thin. Tap anywhere
+        /// on the row to jump; drag to scrub.</summary>
+        private float LabelledSlider(string label, float value, float h, float iw, float sliderH)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, _ink, GUILayout.Width(iw * 0.26f));
+
+            var row = GUILayoutUtility.GetRect(10f, sliderH, GUILayout.ExpandWidth(true));
+            float next = InkSlider(row, value);
+
+            GUILayout.Label($"{Mathf.RoundToInt(next * 100f)}%", _ink,
+                            GUILayout.Width(iw * 0.15f));
+            GUILayout.EndHorizontal();
+            GUILayout.Space(h * 0.018f);
+
+            // Only tick when the value crosses a step — a drag would otherwise fire a
+            // haptic every frame.
+            if (Mathf.RoundToInt(next * 20f) != Mathf.RoundToInt(value * 20f)) Haptics.Tick();
+            return next;
+        }
+
+        private static readonly int SliderHint = "hv.inkslider".GetHashCode();
+
+        private float InkSlider(Rect row, float value)
+        {
+            // The ink line sits centred in a row that is a whole thumb tall.
+            float lineH = Mathf.Max(2f, row.height * 0.16f);
+            float pad = row.height * 0.5f;                       // keep the knob inside
+            var track = new Rect(row.x + pad, row.y + (row.height - lineH) * 0.5f,
+                                 row.width - pad * 2f, lineH);
+
+            int id = GUIUtility.GetControlID(SliderHint, FocusType.Passive, row);
+            var e = Event.current;
+
+            switch (e.GetTypeForControl(id))
+            {
+                case EventType.MouseDown:
+                    if (row.Contains(e.mousePosition))
+                    {
+                        GUIUtility.hotControl = id;
+                        value = Mathf.Clamp01((e.mousePosition.x - track.x) / track.width);
+                        e.Use();
+                    }
+                    break;
+                case EventType.MouseDrag:
+                    if (GUIUtility.hotControl == id)
+                    {
+                        value = Mathf.Clamp01((e.mousePosition.x - track.x) / track.width);
+                        e.Use();
+                    }
+                    break;
+                case EventType.MouseUp:
+                    if (GUIUtility.hotControl == id) { GUIUtility.hotControl = 0; e.Use(); }
+                    break;
+            }
+
+            if (e.type == EventType.Repaint)
+            {
+                GUI.DrawTexture(track, FlatTexture(new Color(0.62f, 0.58f, 0.50f, 0.85f)));
+
+                var filled = new Rect(track.x, track.y, track.width * value, track.height);
+                GUI.DrawTexture(filled, FlatTexture(new Color(0.24f, 0.21f, 0.17f)));
+
+                float knob = row.height * 0.72f;
+                var knobRect = new Rect(track.x + track.width * value - knob * 0.5f,
+                                        row.y + (row.height - knob) * 0.5f, knob, knob);
+                GUI.DrawTexture(knobRect, FlatTexture(new Color(0.17f, 0.15f, 0.12f)));
+            }
+
+            return value;
+        }
+
+        private bool LabelledSwitch(string label, bool value, float h, float iw)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, _ink, GUILayout.Width(iw * 0.48f));
+            bool next = value;
+            if (GUILayout.Button(value ? "On" : "Off", _paperButton,
+                                 GUILayout.Height(h * 0.07f), GUILayout.Width(iw * 0.24f)))
+                next = !value;
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            GUILayout.Space(h * 0.012f);
+            return next;
         }
 
         private void DrawPrompt(float w, float h)

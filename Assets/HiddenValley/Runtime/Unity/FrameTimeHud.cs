@@ -17,14 +17,15 @@ namespace HiddenValley.Unity
     /// </summary>
     public sealed class FrameTimeHud : MonoBehaviour
     {
-        // Dev builds show the readout; release builds hide it behind the 3-finger
-        // gesture so testers never see debug text but the device pass can always
-        // summon it.
-        [SerializeField] private bool visible = true;
+        // Dev builds show the readout; release builds hide it. Two ways back: the
+        // 3-finger gesture (fast, undiscoverable) and the Settings switch (discoverable,
+        // sticky) — the latter is what the owner's device pass should use, because it
+        // survives a relaunch.
+        private bool visible = true;
 
         private void Awake()
         {
-            if (!UnityEngine.Debug.isDebugBuild) visible = false;
+            visible = UnityEngine.Debug.isDebugBuild || GameSettings.FrameHud;
         }
         [SerializeField] private float windowSeconds = 10f;
         [SerializeField] private int targetFps = 60;
@@ -41,6 +42,9 @@ namespace HiddenValley.Unity
         private float _sessionWorstAfterWarmup;
 
         public float WorstMs => _worst * 1000f;
+
+        private GUIStyle _style;
+        private int _styleForHeight;
 
         private void Update()
         {
@@ -62,9 +66,14 @@ namespace HiddenValley.Unity
             if (gesture && !_gestureHeld)
             {
                 visible = !visible; // 3-finger tap toggles; the reset rides along
+                GameSettings.FrameHud = visible;
                 ResetWindow();
             }
             _gestureHeld = gesture;
+
+            // Settings can flip it while the gesture is idle.
+            if (!UnityEngine.Debug.isDebugBuild && !gesture && visible != GameSettings.FrameHud)
+                visible = GameSettings.FrameHud;
 
             // Telemetry: the device pass's numbers, written down by the device itself.
             // Appends a line every 15 s after a 20 s warmup (load hitches excluded), so
@@ -118,13 +127,18 @@ namespace HiddenValley.Unity
             float currentMs = Time.unscaledDeltaTime * 1000f;
             float worstMs = WorstMs;
 
-            var style = new GUIStyle(GUI.skin.label)
+            // Hoisted: a per-OnGUI GUIStyle is exactly the allocation churn the readout
+            // is here to detect, and it would show up in its own numbers.
+            if (_style == null || _styleForHeight != Screen.height)
             {
-                fontSize = Mathf.RoundToInt(Screen.height * 0.022f),
-                alignment = TextAnchor.UpperLeft
-            };
-
-            style.normal.textColor = worstMs > budgetMs ? Color.red : Color.green;
+                _styleForHeight = Screen.height;
+                _style = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = Mathf.RoundToInt(Screen.height * 0.022f),
+                    alignment = TextAnchor.UpperLeft
+                };
+            }
+            _style.normal.textColor = worstMs > budgetMs ? Color.red : Color.green;
 
             float memMb = Profiler.GetTotalAllocatedMemoryLong() / (1024f * 1024f);
 
@@ -134,10 +148,12 @@ namespace HiddenValley.Unity
                 $"1% hi {OnePercentHighMs():00.0} ms\n" +
                 $"mem  {memMb:0} MB";
 
-            var rect = new Rect(Screen.width * 0.02f, Screen.height * 0.02f,
+            // Lower left: the top row belongs to Menu/Bag/Account, and a readout that
+            // sits on the Menu button is a readout you turn off instead of reading.
+            var rect = new Rect(Screen.width * 0.02f, Screen.height * 0.66f,
                                 Screen.width * 0.5f, Screen.height * 0.3f);
 
-            GUI.Label(rect, text, style);
+            GUI.Label(rect, text, _style);
         }
     }
 }

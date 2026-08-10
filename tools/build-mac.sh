@@ -31,9 +31,14 @@ echo "Unity: $UNITY_BIN"
 echo "Out:   $HV_MAC_BUILD_DIR"
 echo
 
-# Ensure layout is present for runtime spawn.
-mkdir -p Assets/StreamingAssets/Layout
-cp -f Assets/HiddenValley/Layout/heartwood.json Assets/StreamingAssets/Layout/heartwood.json
+# The layout lives in StreamingAssets and nowhere else — the duplicate under
+# Assets/HiddenValley/Layout was deleted when VillageSetup and LayoutSpawner were
+# pointed at the same file. Fail loudly if it goes missing rather than building a
+# village with nothing in it.
+if [ ! -f Assets/StreamingAssets/Layout/heartwood.json ]; then
+  echo "Missing Assets/StreamingAssets/Layout/heartwood.json — nothing to spawn." >&2
+  exit 1
+fi
 
 "$UNITY_BIN" \
   -quit -batchmode -nographics \

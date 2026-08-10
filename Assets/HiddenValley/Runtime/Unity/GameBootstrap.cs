@@ -118,6 +118,8 @@ namespace HiddenValley.Unity
             AtmosphereRig.Spawn();
             BirdFlock.Spawn();
 
+            StartCoroutine(ScreenshotHook());
+
             // Reposition the player where they were saved. Start, not Awake: every scene
             // object exists by now, and the CharacterController must be toggled around a
             // teleport or it snaps the transform back.
@@ -140,6 +142,91 @@ namespace HiddenValley.Unity
             if (cc != null) cc.enabled = false;
             player.transform.position = new Vector3(x, y, z);
             if (cc != null) cc.enabled = true;
+        }
+
+        /// <summary>
+        /// Dev hook: "-hvshot &lt;path&gt; [seconds]" photographs the running game from
+        /// inside it and quits. Exists because the alternative — driving macOS
+        /// `screencapture` at the player window — depends on window focus and on
+        /// accessibility permission to send keystrokes, neither of which a headless
+        /// verification run can rely on. A pass that cannot be photographed cannot be
+        /// scored, so the game takes its own picture.
+        /// </summary>
+        private System.Collections.IEnumerator ScreenshotHook()
+        {
+            string path = null;
+            float delay = 6f;
+
+            var args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+                if (args[i] == "-hvshot")
+                {
+                    path = args[i + 1];
+                    if (i + 2 < args.Length
+                        && float.TryParse(args[i + 2], System.Globalization.NumberStyles.Float,
+                                          System.Globalization.CultureInfo.InvariantCulture, out var s))
+                        delay = s;
+                }
+
+            if (path == null) yield break;
+
+            // Without this the player freezes the moment it loses focus — Update stops,
+            // the coroutine never resumes, and the capture silently never happens. The
+            // verification run is exactly the case where the window is behind a terminal.
+            Application.runInBackground = true;
+
+            // Realtime: the pause panel sets timeScale to 0, and a scaled wait there
+            // would never return.
+            yield return new WaitForSecondsRealtime(delay);
+            yield return new WaitForEndOfFrame();
+
+            // Written by hand as an uncompressed TGA rather than via
+            // ScreenCapture/ImageConversion: this project trims the built-in modules
+            // (see Packages/manifest.json), and a verification hook is not worth putting
+            // two modules back into every shipped build. Convert on the host with
+            // `sips -s format png shot.tga --out shot.png`.
+            var shot = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+            shot.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0);
+            shot.Apply();
+
+            try
+            {
+                File.WriteAllBytes(path, EncodeTga(shot));
+                Debug.Log($"[HiddenValley] Screenshot written: {path} ({Screen.width}x{Screen.height}).");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[HiddenValley] Screenshot failed: {e.Message}");
+            }
+            Destroy(shot);
+
+            yield return new WaitForSecondsRealtime(1f);
+            Application.Quit();
+        }
+
+        /// <summary>Uncompressed 24-bit bottom-up TGA — the simplest format that needs no
+        /// encoder module. ReadPixels already hands us bottom-up BGR-order-friendly rows.</summary>
+        private static byte[] EncodeTga(Texture2D tex)
+        {
+            int w = tex.width, h = tex.height;
+            var pixels = tex.GetPixels32();
+            var bytes = new byte[18 + w * h * 3];
+
+            bytes[2] = 2;                        // uncompressed true-colour
+            bytes[12] = (byte)(w & 0xFF);
+            bytes[13] = (byte)((w >> 8) & 0xFF);
+            bytes[14] = (byte)(h & 0xFF);
+            bytes[15] = (byte)((h >> 8) & 0xFF);
+            bytes[16] = 24;                      // bits per pixel
+
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                int o = 18 + i * 3;
+                bytes[o] = pixels[i].b;          // TGA is BGR
+                bytes[o + 1] = pixels[i].g;
+                bytes[o + 2] = pixels[i].r;
+            }
+            return bytes;
         }
 
         private void Update()

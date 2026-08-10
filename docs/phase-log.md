@@ -531,6 +531,54 @@ the editor, invisible on the Mac, real on the phone. The 60 fps verdict against 
 16.7 ms budget is the reconnect-trap's output; until it lands, quality dimension #1
 remains UNMEASURED at 60.
 
+### 2026-08-10 — Pass 11: pause and settings; the game learns to photograph itself
+
+Actor: Claude Code (`claude-opus-5[1m]`). Scorecard entry in `docs/score.md`.
+
+**Shipped.** A pause modal (Menu button, Esc on desktop): `Time.timeScale = 0`,
+`TouchControls.Locked`, and the context tap consumed so a screen tap cannot reach
+through the panel and advance a line. Options in a new `GameSettings` (PlayerPrefs,
+deliberately outside Core and outside the save file, so New Game does not reset a
+volume): Sound, Voices, Haptics, Frame times, plus Save now. `GameAudio` keeps its
+authored mix and scales it by the settings every frame; `Haptics` gates at the call
+site; `FrameTimeHud` reads the sticky switch as well as the 3-finger gesture, and
+moved to the lower left where it no longer sits under the new Menu button.
+Authoring guide updated (`systems-README` §14 rewritten for the painted-sprite
+pipeline that replaced rigs in pass 8, and a new §15 for pause/settings).
+
+**Tooling — the durable half.** `-hvshot <path> [seconds]`: the game captures its own
+framebuffer and quits, writing an uncompressed TGA by hand because this project trims
+the built-in `screencapture`/`imageconversion` modules and a verification hook does
+not justify putting them back into every shipped build. Convert with
+`sips -s format png shot.tga --out shot.png`. This exists because driving macOS
+`screencapture` at the player window failed twice over: `osascript` is not permitted
+to send keystrokes here, and the window would not stay frontmost.
+
+**New landmine (#7).** An unfocused Unity player stops updating entirely — Update
+halts, coroutines never resume. The capture hook silently did nothing until it set
+`Application.runInBackground = true`. Any future headless/unattended verification run
+must do the same.
+
+**Two repo defects found and fixed.** `tools/build-mac.sh` copied
+`Assets/HiddenValley/Layout/heartwood.json`, deleted in the M0 dedup — with
+`set -euo pipefail` the documented Mac build path had been dead since. It now checks
+StreamingAssets and fails loudly. `FrameTimeHud` was allocating a `GUIStyle` every
+OnGUI, which is exactly the churn it exists to detect; hoisted.
+
+**Evidence, and a correction against my own first reading.** The day full-frame
+verify pass 10 was waiting on is now on record. The frame reads washed out; I cut the
+Day palette's sun 1.15 → 0.68 on that reading, then **sampled the pixels and reverted
+it** — ground is 0.63/0.37 sRGB (correct wet stone) and the whiteness is simultaneous
+contrast against 0.22 facades. The real defect is that buildings are too dark to show
+pass 10's painted plaster and slate at all in daylight. Named as the next visual pass
+with those numbers as the target. Mac p99 with HDR bloom: **9.3 ms** against 16.7
+(worst 17.7 ms is one load hitch) — the pass-9 HDR watch item resolves on Mac.
+
+Verified: 50/50 tests; Mac player builds, boots, restores a save, spawns 32/3/1;
+pause panel and day frame both captured by the game itself. Passes run: **none on
+device** — everything here is Mac-verified. Quality dimension #1 (60fps on the phone)
+remains UNMEASURED, unchanged by this pass.
+
 ---
 
 ## What the next session should do

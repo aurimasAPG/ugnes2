@@ -15,10 +15,12 @@ namespace HiddenValley.Unity
         [DllImport("__Internal")] private static extern void _hv_hapticSuccess();
         [DllImport("__Internal")] private static extern void _hv_hapticTick();
 
-        public static void Light() => _hv_hapticImpact(0);
-        public static void Medium() => _hv_hapticImpact(1);
-        public static void Success() => _hv_hapticSuccess();
-        public static void Tick() => _hv_hapticTick();
+        // Gated at the call site rather than at each beat: the beats stay ignorant of
+        // the setting, and one switch silences all of them.
+        public static void Light() { if (GameSettings.HapticsOn) _hv_hapticImpact(0); }
+        public static void Medium() { if (GameSettings.HapticsOn) _hv_hapticImpact(1); }
+        public static void Success() { if (GameSettings.HapticsOn) _hv_hapticSuccess(); }
+        public static void Tick() { if (GameSettings.HapticsOn) _hv_hapticTick(); }
 #else
         public static void Light() { }
         public static void Medium() { }

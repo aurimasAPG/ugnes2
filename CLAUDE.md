@@ -147,3 +147,11 @@ content is a JSON edit. `docs/systems-README.md` is the authoring guide.
    trust and someone has to re-trust in Settings. Install over the top.
 6. IMGUI + legacy `Input` everywhere by design (input handler is set to "Both");
    grey-box builds need no canvas, prefabs, or font assets.
+7. **An unfocused player stops updating entirely** — Update halts, coroutines never
+   resume. Any unattended verification run must set `Application.runInBackground`.
+   To photograph the game, use its own hook rather than macOS `screencapture` (which
+   needs window focus and accessibility permission to send keys):
+   `-hvshot <path.tga> [seconds]` captures and quits; `-hvminute <m>` sets the hour;
+   `-hvpause` opens the pause panel. Convert with
+   `sips -s format png shot.tga --out shot.png`. TGA is written by hand because
+   `Packages/manifest.json` trims the `screencapture`/`imageconversion` modules.
