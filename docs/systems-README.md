@@ -279,3 +279,133 @@ reaching a tester.
 - **No per-content C# types.** There is no `VeskController`. If you find yourself writing
   one, the architecture has failed and kill criterion 2 applies.
 - **No inheritance hierarchy for quests or NPCs.** A new NPC is a row of data.
+
+---
+
+## 10. Placing things: the layout file
+
+Content JSON decides **what** exists; `Assets/HiddenValley/Layout/heartwood.json`
+decides **where**. The scene file is never authored by hand — it is generated:
+
+    Unity -quit -batchmode -projectPath . -executeMethod HiddenValley.Editor.VillageSetup.GenerateHeartwood
+
+The layout file has four lists:
+
+- `blocks` — dumb geometry: name, shape (`cube`/`cylinder`/`sphere`), `pos`, `size`,
+  optional `rot`, and a `mat` from the fixed grey-box palette (`grey`, `dark`, `sand`,
+  `moss`, `bark`, `water`).
+- `worldObjects` — one entry per content world-object id. Same geometry fields, plus
+  `blocking: true` to wire the collider the binder toggles (barriers, gates), and
+  `solid: false` for pickups you walk through. Every entry gets a `WorldObjectBinder`
+  and an interaction zone automatically.
+- `npcs` — spawn position and a `waypoints` map from schedule waypoint ids to
+  positions. Every entry gets a `NavMeshAgent` and an `NpcBinder`, fully wired.
+- `player` / `pip` — spawn points.
+
+The generator bakes the NavMesh last, then registers the scene in Build Settings.
+**Moving a landmark to fix a dead stretch found by the interest-density walk is a JSON
+edit and a re-run.** Adding NPC #4's home, waypoints and quest objects is the same —
+still zero C#.
+
+Rule of thumb baked into the current layout: walk speed is 4.5 m/s, the 40-second rule
+is therefore 180 m, and no leg is longer than ~30 m without something to look at or
+touch. Keep it that way.
+
+## 11. The HUD
+
+`GameHud` (IMGUI, like the rest of the debug layer — no canvas, no prefabs, survives
+scene regeneration) draws: the clock, the quest tracker, the interaction prompt,
+dialogue with choices, the bag, the account, and readable text.
+
+Input is **one context button** (`TouchControls.ContextAction`): a right-half tap
+talks to the NPC in front of you, else interacts with what is in front of you, else
+advances dialogue, else jumps. Dialogue and panels lock movement, so aimed taps
+(choices, toggles) are single-touch. Phase 4 replaces the skin, not this wiring.
+
+## 12. The full layout vocabulary (added with the M4 world)
+
+Everything below is authored in `Assets/StreamingAssets/Layout/heartwood.json` and
+costs zero C#. `tools/density-check.py` verifies the 40-second rule arithmetically
+after any layout edit (the stopwatch walk remains the gate).
+
+- **Kits** — `"kit": "house" | "kiln" | "gearhouse" | "bridge"` on a block expands
+  it into a building (stone base, walls, pitched slate roof, door; `"floors": 2`
+  for Orrel's silhouette). Expansion lives in `LayoutKits` and is shared by the
+  scene generator and the runtime spawner.
+- **Paths** — `"paths": [{ "mat", "width", "points": [[x,z],…] }]` lays quad-strip
+  earth paths 3 cm proud of the ground.
+- **Water** — any block with `"mat": "water"` plus `"runtime": true` spawns at
+  runtime with the transparent flow material; `"flow": [x,z]` sets direction.
+- **Scatter** — `"scatter": [{ "region": [cx,cz,w,d], "y", "seed", "count",
+  "items": ["tuft","stone"] }]` — deterministic, capped, shadowless, and the tufts
+  sway (stilled to zero on Quietdays via the AtmosphereRig).
+- **Zones** — `"zones": [{ "id", "bounds": [cx,cy,cz,w,h,d], "fogTint",
+  "fogDensityMul", "ambientTint" }]` — local mood while the player is inside.
+- **Fx** — `"fx": "smoke" | "emberlight"` on a block or world object.
+
+## 13. Presentation cues (added with M5)
+
+Content triggers presentation through the `cue` effect:
+`{ "type": "cue", "id": "sting.mystery" }` in any effect list. Convention:
+`sting.x` plays music sting `mus_sting_x`; `sfx.x` plays one-shot `sfx_x`. The
+Unity side routes them in `GameAudio.OnCue`; new cue kinds are one switch case in
+one place, never string-matching dialogue text.
+
+## 14. Character bodies: painted sprites first, procedural rig as fallback
+
+`CharacterRig.Build(anchor, key)` resolves a body in one of two ways, in order:
+
+1. **A painted sprite**, if `Resources/Art/Sprites/char_{key}.png` exists. It becomes
+   a lit alpha-cutout billboard at the character's stature. This is what all five
+   shipped characters use.
+2. **The procedural rig**, otherwise — primitives from a per-key proportion table
+   (Vesk apron, Orrel ledger, Coll gear charm), defaulting to the player's build for
+   an unknown key.
+
+So **adding NPC #5 needs zero C#**: author the NPC in JSON as in §3, and drop a
+`char_{id}.png` next to the others. With no sprite the NPC still spawns, wearing the
+default procedural body. A *distinct procedural* silhouette is the one C# edit here
+(a new table row) — needed only if you want a unique primitive body rather than a
+painting.
+
+### The sprite contract
+
+All character art must be generated under one style contract or the cast stops
+looking like one cast. What the shipped five were made to:
+
+- Gouache//painted, matte, visible brush texture; no line art, no cel shading.
+- Full body, front-facing, feet at the bottom edge, neutral standing stance.
+- Flat neutral background of a single colour (it becomes alpha).
+- Light from the upper left, soft; no cast shadow painted in (the engine adds a blob).
+- Palette borrowed from the wet-stone set — the scene's lighting tints the sprite, so
+  paint values, not saturated hues.
+
+Post-processing before import: flood-fill the background from the border to alpha,
+trim to the painted bounds, and import as a texture with alpha-is-transparency on.
+The material must be a **baked cutout asset**, not a runtime-built material — URP
+strips the alpha-test shader variant from the build otherwise, and the characters
+ship as opaque rectangles.
+
+Statures (metres, feet on the ground) live with the rest of the per-key data in
+`CharacterRig`; Pip is a special case with code-flapped wings whose beat quickens
+with `Dimness`.
+
+## 15. Pause and settings
+
+`GameHud` owns a pause modal (Menu button, or Esc on desktop) that sets
+`Time.timeScale = 0`, locks `TouchControls`, and swallows the context tap so nothing
+reaches the world behind it. Options live in `GameSettings` — a PlayerPrefs-backed
+static, deliberately **not** in Core and **not** in the save file, so a New Game does
+not reset someone's volume.
+
+| Setting | Read by | When it applies |
+|---|---|---|
+| `Master` | `GameAudio` (scales the authored mix) | live, mid-drag |
+| `Voice` | `GameAudio` voice bed | live, mid-drag |
+| `HapticsOn` | `Haptics` at each call site | next beat |
+| `FrameHud` | `FrameTimeHud` | live; also flipped by the 3-finger gesture |
+
+Adding an option is three lines in `GameSettings` (a backing field, a property that
+writes the pref, a default in `Load`) plus one row in `GameHud.DrawPause`. Writes to
+disk are batched: the panel `Flush()`es on close and on backgrounding, never per
+frame of a slider drag.

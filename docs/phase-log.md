@@ -3,14 +3,15 @@
 The running record. Read this first. A pass that is not recorded here did not happen; a
 gate that is not marked here is not cleared.
 
-**Current state:** Phase 0 — **not started.** No phase gate has been cleared, because
-every gate in the protocol requires a physical device and this environment has none
-(blocker B1). Substantial source and content exist and are tested; that is not the same
-as a cleared gate and is not recorded as one.
+**Current state:** Phase 0 — **in progress on the owner's Mac** (2026-08-07, second
+session). Unity 6 LTS is installing; the Phase 0 runtime pieces and a headless project
+setup command are authored. Blocked on three user-only steps: Unity license sign-in,
+a connected iPhone, and an Apple ID in Xcode. See B1 (revised) and the 2026-08-07 Mac
+session entry.
 
 | Phase | Gate | State |
 |---|---|---|
-| 0 — Foundation spike | Build reaches device in <10 min from one command? | ⬜ Not started — needs a Mac + device (B1) |
+| 0 — Foundation spike | Build reaches device in <10 min from one command? | ✅ **CLEARED 2026-08-07** — 238 s cold, one command, installed on the target iPhone |
 | 1 — Traversal feel | Camera never clips, never loses player, over 5 min adversarial? | ⬜ Not started |
 | 2 — Systems skeleton | Was the C# diff genuinely empty? | 🟨 **Data-driven half demonstrated.** Gate not cleared — see below |
 | 3 — Content + first art | Interest-density walk passes, no 40s dead stretch? | ⬜ Not started — no layout, no art |
@@ -55,7 +56,25 @@ compiled by Unity. The gate stays amber until someone runs it on a device.
 
 ## Blockers
 
-### B1 — No game toolchain in the execution environment (2026-08-07, OPEN)
+### B1 — No game toolchain in the execution environment (2026-08-07, MOSTLY RESOLVED)
+
+**Revised 2026-08-07, Mac session.** The original blocker described the Linux agent
+container. This session runs on the owner's MacBook Pro (Apple silicon, Xcode 26.6):
+
+- .NET 8 SDK installed (user-level, `~/.dotnet`); **all 22 tests pass on this machine.**
+- Unity Hub installed; Unity **6000.0.81f1 + iOS module** installing headlessly.
+
+Still open, and all three are user-only steps:
+
+1. **Unity license** — open Unity Hub once and sign in (free Personal license
+   activates automatically). Batch mode refuses to run unlicensed.
+2. **Device** — no iPhone connected (`xctrace list devices` shows none).
+3. **Signing** — zero codesigning identities on this Mac; sign into Xcode with an
+   Apple ID (Settings → Accounts), and set `TEAM_ID` for `tools/build-ios.sh`.
+
+Original entry follows for the record.
+
+### B1 (original) — No game toolchain in the execution environment (2026-08-07, superseded)
 
 Linux x86_64. Verified absent: `unity`, `unity-editor`, `godot`, `mono`, `xcodebuild`. No
 macOS host, no Xcode, no signing identity, no TestFlight, no device.
@@ -182,21 +201,394 @@ resources, the mystery's structure.
 no UI exist. These are the highest-risk remaining items — silhouette is where IP problems
 actually live — and the next pass is triggered by whichever lands first.
 
+### 2026-08-07 — Mac session: toolchain + the missing Phase 0 runtime
+
+Actor: Claude Code (`claude-fable-5`), on the owner's MacBook Pro.
+
+**Toolchain.** .NET 8 SDK (user-level), Unity Hub, Unity 6000.0.81f1 + iOS module
+(headless install). `dotnet test` on this machine: **22/22 pass, 42 ms** — the Core
+engine is verified on macOS/arm64, not just in the Linux container.
+
+**Gap found and closed.** The Phase 0 done-state requires a touch joystick, a follow
+camera and the frame-time readout in a grey-box room on device. The HUD existed; the
+joystick, the player controller, the camera and the scene did not. Authored:
+
+- `PlayerController.cs` — CharacterController movement, camera-relative, explicit
+  accel/decel/turn-rate fields as the Phase 1 tuning surface, sprint, jump.
+- `FollowCamera.cs` — no free orbit (cannot lose the player by construction),
+  sphere-cast occlusion pulled in instantly and released eased, exponential damping
+  that is framerate-independent.
+- `TouchControls.cs` — floating left-half joystick from raw touches, right-half
+  tap = jump / hold = sprint, desktop fallback in the editor, IMGUI overlay (no
+  canvas in grey-box builds).
+- `Editor/ProjectSetup.cs` — one headless command
+  (`-executeMethod HiddenValley.Editor.ProjectSetup.All`) that configures URP for
+  mobile (no HDR, MSAA 4x, 45 m shadows), sets iOS player settings (landscape-only,
+  iOS 16 floor, provisional bundle id `lt.apgmedia.hiddenvalley`), sets the input
+  handler to Both, and generates the grey-box room — perimeter, tight alcove, narrow
+  corridor, pillars, a 20° ramp and a 0.25 m staircase, i.e. the exact furniture the
+  Phase 1 adversarial camera test names — then registers the scene in Build Settings.
+- `ProjectSettings/ProjectVersion.txt` pinned to 6000.0.81f1.
+
+**None of the Unity-layer code has compiled yet** — that is the first thing to run
+once the license exists. Treat everything above as reviewed-but-unverified source,
+same status as the adapter layer.
+
+Passes run this entry: **none.** No device, no build. The derivativeness exposure of
+this entry is low (grey-box geometry, a floating joystick and tap-to-jump are genre
+furniture, not property signatures) but it is recorded as *not run*, not as passed.
+
+### 2026-08-07 — Play HUD and the data-driven layout
+
+Actor: Claude Code (`claude-fable-5`), Mac session, while the editor downloads.
+
+**Two gaps closed, both required before Phase 3 can even be attempted:**
+
+1. **`GameHud`** — the slice was a black box: the engine could run a quest but the
+   player had no way to see dialogue, the tracker, the bag, the account, or a readable.
+   IMGUI like the rest of the debug layer, so grey-box builds need no canvas, no
+   prefabs, no font assets. Input is one context button routed through
+   `TouchControls.ContextAction`: tap = talk / interact / advance dialogue / jump, in
+   that priority. Dialogue and panels lock movement. Phase 4 restyles this; it does
+   not rewire it.
+
+2. **`Assets/HiddenValley/Layout/heartwood.json` + `VillageSetup`** — the project's
+   data-driven property applied to space. The layout JSON places every world-object
+   id (all 32), every NPC spawn and schedule waypoint, player and Pip; the generator
+   builds the grey-box village + climb + Ash Shelf + lower shelf, wires every binder
+   and interaction zone, bakes the NavMesh, and registers the scene. The scene file
+   is never hand-authored. Re-cutting the layout after a failed interest-density walk
+   is a JSON edit and a re-run — re-laying-out a finished scene is where projects
+   die, and this is the mechanism that makes re-laying-out cheap.
+
+   Layout arithmetic on record: walk speed 4.5 m/s → the 40-second rule is 180 m; the
+   longest leg in the authored layout is ~30 m (the climb's second ramp), with a
+   landmark tree and a resin pickup on the landing. **This is arithmetic, not the
+   gate** — the gate is walked with a stopwatch on device, and stays unclear.
+
+   Also fixed before first compile: `HiddenValley.Editor.asmdef` was missing the URP
+   and AI-navigation references its code uses — caught by review, would have been the
+   first compile error.
+
+Passes run this entry: **none** (no device, no build — B1's remaining user steps).
+Derivativeness exposure: "one context button" and a floating joystick are genre
+furniture; the account/bag naming follows the world bible. Next derivativeness pass
+triggers when art or real UI styling lands, per pass 01.
+
+### 2026-08-07 — First compile, both scenes generated, build pipeline proven to the signing wall
+
+Actor: Claude Code (`claude-fable-5`), Mac session, after the owner signed into Unity Hub.
+
+**The Unity layer compiles.** 26 C# files authored blind across two environments
+produced exactly one compile error — `BuildFailedException` needed
+`using UnityEditor.Build;` in `BuildCommand.cs`. Fixed. Zero errors after.
+
+**Headless setup ran end to end.** URP configured, iOS player settings applied,
+`Greybox.unity` and `Heartwood.unity` both generated with NavMesh baked, meta files
+and ProjectSettings committed from Unity 6000.0.81f1.
+
+**`tools/build-ios.sh` measured, twice:**
+
+- Unity → Xcode project: **53 s cold, 36 s incremental**, content validator passed,
+  0 errors, both runs.
+- Xcode stage first failed on a missing iOS platform SDK (fresh Xcode 26.6);
+  installed via `xcodebuild -downloadPlatform iOS`, no GUI needed.
+- Xcode stage now proceeds to: `"Unity-iPhone" requires a provisioning profile` —
+  the exact expected wall. **Zero signing identities on this Mac.**
+
+**Gate arithmetic so far:** the Unity stage spends ~40 s of the 600 s budget. The
+gate is not cleared — it requires the app to reach the physical device — but the
+budget is in no visible danger.
+
+**Remaining before the Phase 0 gate can be attempted, both user-only:**
+1. Apple ID in Xcode (Settings → Accounts) — the free personal team is enough for
+   on-device development builds.
+2. iPhone plugged in and trusted. Then `TEAM_ID=<team> tools/build-ios.sh`
+   (`brew install ios-deploy` for the install step).
+
+Passes run this entry: **none** — still no app on a device. Timings above are build
+telemetry, not a device pass.
+
+### 2026-08-07 — PHASE 0 GATE CLEARED
+
+Actor: Claude Code (`claude-fable-5`) driving; owner performing the device-side steps.
+
+**`tools/build-ios.sh` → `PHASE 0 GATE: PASS (under 10 minutes)` — total 238 s, cold**,
+from one command, ending with the signed app installed on the physical target device
+(iPhone 16 Pro, iOS 26.6 — above the iPhone 13 floor from `[CONFIRM]` #3).
+
+The five failures between "code compiles" and "app on phone", each fixed in the build
+system so they never recur:
+
+1. **Missing iOS platform SDK** in fresh Xcode → `xcodebuild -downloadPlatform iOS`.
+2. **Manual signing in the generated project** → Unity now sets
+   `appleEnableAutomaticSigning` + team id in `ProjectSetup.ConfigurePlayerSettings`.
+3. **Device not registered with the team** → build targets the concrete device
+   (`platform=iOS,id=$DEVICE`) so `-allowProvisioningDeviceRegistration` works.
+4. **Developer Mode off** (two-step toggle, easy to half-complete) → verified against
+   the device itself via `devicectl` before building.
+5. **iCloud Drive corrupting signatures** — the repo lives in synced `~/Documents`;
+   the file provider re-tags outputs with Finder metadata and codesign refuses them
+   ("detritus not allowed"). **Builds now go to `~/Library/Caches/HiddenValleyBuild`**,
+   outside any synced tree, via `HV_BUILD_DIR`. Flagged for later: the repo itself
+   (especially Unity's `Library/`) still syncs to iCloud pointlessly.
+
+Owner-side one-time setup completed this session: Unity license, Apple ID in Xcode
+(personal team `32U8KR34UT`, extracted from the certificate), device trust, Developer
+Mode.
+
+**What this gate does NOT claim:** the app has not yet been launched and played on the
+device. The Phase 0 done-state (grey-box scene running with joystick, follow camera,
+frame-time readout) is verified the moment the owner opens the app; the ten-minute
+device pass is still to run. The installed build boots the Heartwood slice scene.
+
+### 2026-08-07 — Launch crash found by bisection: editor-baked NavMesh corrupts the packed scene
+
+The installed build crashed on boot: `The file '...level0' is corrupted!`,
+`[Position out of bounds!]`, signal 5, grey screen for a second.
+
+Hypotheses eliminated in order, each by a full rebuild-and-launch cycle with the
+console attached via `devicectl`:
+
+1. ios-deploy transfer corruption — reinstalled with `devicectl`: same crash.
+2. `-nographics` export — exported with graphics: same crash.
+3. Unsaved in-memory NavMeshData reference — persisted as asset: same crash
+   (this WAS a real serialization bug — the pre-fix level0 was 34 KB longer than its
+   own header claimed — but fixing it did not stop the crash).
+4. Stale device container — full uninstall + reinstall: same crash.
+5. Half-stale Data folder from incremental export — fully clean export: same crash.
+
+**The decisive bisect:** the Greybox scene (no NavMesh) shipped alone — **runs on
+device**, confirmed by process liveness and by the owner's eyes: grey-box room,
+joystick, follow camera, frame-time HUD all live. That is the Phase 0 done-state,
+observed. Then Heartwood WITHOUT its NavMesh bake — **also runs**. The editor-time
+NavMesh bake was the single poison: a batch-generated scene saved with baked
+NavMeshData produces a level0 the iOS player rejects, whether the data is an asset
+or not.
+
+**Permanent fix (revised, same session):** the NavMesh-only story was incomplete.
+Further Mac-player bisection showed:
+
+| Scene profile | Result |
+|---|---|
+| Greybox | ALIVE |
+| Heartwood shell (blocks + player + systems) | ALIVE |
+| shell + world objects only | ALIVE |
+| shell + NPCs only | ALIVE |
+| shell + Pip only | ALIVE |
+| any **pair** of (wo, npc, pip) | ALIVE |
+| **full** (wo + npc + pip all serialized) | **DEAD** — level0 corrupt |
+
+So the poison is not a single component type: packing the full Heartwood object set
+into one scene produces a bad level0. NavMesh made it worse earlier; the full village
+does it alone.
+
+**Permanent fix (final):**
+
+1. **No NavMesh in the shipped scene** — NPCs walk straight to schedule waypoints
+   (`NpcBinder` direct motion). Grey-box fidelity does not need obstacle avoidance.
+2. **Runtime layout spawn** — `LayoutSpawner` reads
+   `StreamingAssets/Layout/heartwood.json` at Awake (−950) and spawns world objects,
+   NPCs and Pip in code. The serialized scene stays at the known-good shell size
+   (static blocks + player + camera + controls + bootstrap). Data-driven property
+   preserved: moving content is still a JSON edit, zero C#.
+3. **GameHud** attaches at runtime from `TouchControls.Start` (not scene-serialized).
+
+**Mac end-to-end verified 2026-08-07:**
+
+- `tools/build-mac.sh` → `~/Library/Caches/HiddenValleyBuild/mac/HiddenValley.app`
+- Process alive 12+ s (no level0 crash)
+- Player.log: content ready (4 npcs, 8 quests, 32 world objects); layout spawn
+  `wo=32 npc=3 pip=True` in 5 ms
+- boot-marker written under Application Support
+- Controls: WASD, Space (context/jump), Shift sprint, Bag/Account IMGUI
+
+Trust-on-uninstall note for future sessions: uninstalling the app resets the
+developer-profile trust on the phone; reinstalling over the top does not.
+
+### 2026-08-08 — M0: correctness fixes found by four-agent inspection
+
+Actor: Claude Code (`claude-fable-5`). Full findings in `docs/aaa-roadmap.md`;
+milestones in `docs/release-plan.md`.
+
+Fixed, each verified by test and/or the macOS smoke player:
+
+1. **Save restored on launch** — `LoadFromDisk` had zero call sites; every launch was
+   New Game. Restore now runs in `GameBootstrap.Awake` before `Ready`; player position
+   rides in a `player.pos` flag and is reapplied in `Start`.
+2. **Crafting panel** — `ui.open_crafting` finally has a consumer in `GameHud`;
+   Vesk's capability (and quest.lens's documented route) is reachable on device.
+3. **GC hitches removed** — derived GUIStyles hoisted, clock/tracker/choices/bag all
+   revision-gated caches; the per-OnGUI allocation churn (est. 5–20 ms spikes every
+   ~10–30 s) is gone.
+4. **Cue effects** — new Core `CueEffect` (`{"type":"cue","id":"sting.mystery"}`),
+   transient `PendingCues` drained by `GameBootstrap.Cue`; `GameAudio` routes
+   `sting.*`/`sfx.*`. The hardcoded English-substring sting matcher in GameHud is
+   deleted; the mystery's stings are authored in `30-quietday.json` where they belong.
+5. **Latent revision bug** — `LearnClueEffect`/`LearnRecipeEffect` mutated state
+   without `Touch()`, so clue/recipe discovery never notified views. Now routed
+   through `GameState.LearnClue/LearnRecipe`. Regression-tested.
+6. **Audio** — VO duck no longer flaps on the fallback path; short SFX prewarmed at
+   boot; per-speaker VO async-prewarmed when a talk prompt first appears.
+7. **VO hygiene** — 9 narration lines ("Vesk does not look up…") were mapped to
+   character voice; unmapped, with a regression test.
+8. **Validator** — new flag-consistency check (set-but-never-read / read-but-never-set
+   with `ui.`/`solved.`/`player.` namespaces); would have caught #2 at authoring time.
+9. **Single-source layout** — the duplicated `Assets/HiddenValley/Layout` copy is
+   deleted; `VillageSetup` reads the same StreamingAssets file as `LayoutSpawner`.
+
+Tests: **47/47.** macOS smoke: full slice boots, restores a save, spawns 32/3/1 in
+33 ms. Passes run: none (smoke ≠ device pass). **Still owed by the owner: the first
+full-slice device pass** — build to phone, 10 minutes, worst frame time into this log.
+
+### 2026-08-08 — M1–M5 implemented: feel, atmosphere, world, alive layer
+
+Actor: Claude Code (`claude-fable-5`), autonomous run against `docs/release-plan.md`.
+Each milestone verified by the .NET suite (47/47) plus a macOS player build-and-boot;
+M3 and M4 additionally verified by screenshot (dawn light over the kit-built village,
+7.5 ms / 9.4 ms worst with 780 scatter instances on the Mac).
+
+- **M1 (code half):** CapsuleAnimator (lean/gait/squash/breath, runtime-attached),
+  camera sprint FOV+boom kick and travel look-ahead riding the occlusion cast,
+  gait-clocked footsteps.
+- **M3:** AtmosphereRig — gradient sky, fog==horizon, trilight ambient, four phase
+  palettes through the Core clock (sun steps per game-minute), post volume, far plane
+  140; single wet-stone palette in RuntimeArt with per-key smoothness; 14 near-white
+  detail textures (palette owns hue); deliberate shadows.
+- **M4:** layout rewritten to the bible — sunken N–S channel spine with three bridge
+  kits and the sluice on it, building kits (pitched slate roofs, kiln chimney + smoke
+  column, Coll's gear), terrain plates, path network, climb vista notch, cool/warm
+  zones, 780 seeded scatter, flowing transparent water (drowned lens visible through
+  it), ember light, and Quietday as a rendering state (grey light + eastern ashfall
+  while the mystery is open).
+- **M5:** conversation facing (both parties), NPC arrived-idles with player-aware
+  head-turn, Pip life (speed-lagged follow, wander, moth flutter that roughens with
+  Dimness, Perlin gutter, additive halo, dialogue calm), iOS haptics bridge wired to
+  interact/choice/pickup/quest/landing, dialogue punctuation pauses + world-dim +
+  panel ease + portraits, safe-area insets, toast queue paired with stings/haptics,
+  and Pip's pre-quest "restless" on-ramp pointing east before the bark is found.
+
+Passes run: **none on device** — every claim above is Mac-verified only. The owner's
+device pass covers M0–M5 in one session: play 10 minutes, record worst frame time,
+confirm haptics, walk one dawn and one dusk.
+
+### 2026-08-08 — M7 characters + release scaffolding + decision docs
+
+- **Character rigs replace capsules and billboards** (`CharacterRig`): per-key
+  proportion table — Vesk broad with apron, Orrel tall with ledger, Coll stooped
+  with gear charm, hooded player — built at runtime onto the Visual anchor so
+  CapsuleAnimator drives them unchanged; Pip is a moth with code-flapped wings whose
+  beat quickens with `Dimness`. World billboards retired; portraits stay in dialogue.
+  [CONFIRM] #5 resolved *de facto*: the pipeline is fully generated/procedural;
+  reverse only by explicit owner decision.
+- **Release scaffolding:** app icon (lamp-moth over slate valley, deliberately
+  title-independent), monotonic TestFlight build numbers, FrameTimeHud release-gated
+  behind a 3-finger toggle, `tools/phase2-gate-device.sh` (the on-device gate as one
+  command), save-robustness tests (garbage/truncated saves → clean fresh start;
+  50/50 total).
+- **Decision docs:** `docs/title-shortlist.md` (recommendation: "The Undersluice"),
+  `docs/beat-sheet.md` (13 beats, timings to be filled from real sessions),
+  `docs/passes/derivativeness-02.md` — the assembled look assessed: palette,
+  silhouettes, Pip, buildings all clear; title remains the standing risk.
+- **Deferred with reason:** wind vertex sway + moss/wetness shader — wants real
+  device profiling first (vertex-stage cost is a claim until measured on the A15).
+
+Verified: 50/50 tests; Mac player boots and runs; screenshots confirm the rigged
+characters and the dawn look. Device passes still owed by the owner.
+
+### 2026-08-08 — Full slice installed and running on the target device; final polish layer
+
+- **The complete game is on the iPhone 16 Pro and runs** (process verified via
+  `devicectl`): atmosphere, channel-spine village, character rigs, moth Pip, audio,
+  haptics build. Installed via `devicectl` — note for the record: ios-deploy's
+  device discovery no longer works on iOS 26; `build-ios.sh`'s install step should
+  migrate to devicectl next time it is touched.
+- **Wind sway** on the scatter field (staggered transform updates, ~170 writes/frame)
+  that stills to zero on Quietdays — the wrong morning is visible in the grass.
+- **Phase 4 paper-and-ink skin** applied to all five panels (generated deckle-edged
+  paper, ink text, paper choice buttons); floating HUD text stays light-on-world;
+  the input contract untouched.
+- **TestFlight lane**: `tools/exportOptions.plist` + guarded `HV_UPLOAD=1` archive/
+  export/upload stage in `build-ios.sh` — inert until the paid account exists.
+
+Verified: 50/50 tests, Mac player runs, device process alive. **What remains for the
+gates is play, not code**: the timed device pass, the two-person Phase 1 test, the
+on-device Phase 2 performance (`tools/phase2-gate-device.sh`, before 1 Sept), the
+stopwatch walk, the five-tester hook test, the recorded playthrough, the Apple
+Developer purchase, and the title sign-off (`docs/title-shortlist.md`).
+
+### 2026-08-08 — FIRST ON-DEVICE MEASUREMENTS, captured by the game itself
+
+The self-measuring build launched on the iPhone 16 Pro via the unlock-trap loop and
+wrote its own numbers: **33.3 ms steady, worst 36.4 ms, p99 34.4 ms, 90 MB.**
+A perfectly steady 33.3 ms is a cap, not a struggle — Unity's iOS default
+`targetFrameRate` is 30. Fixed (`Application.targetFrameRate = 60` in bootstrap);
+the 60fps build is compiled and armed to auto-install + re-measure the moment the
+phone (currently unplugged) reconnects.
+
+This is exactly the class of finding the device-pass rule exists for: invisible in
+the editor, invisible on the Mac, real on the phone. The 60 fps verdict against the
+16.7 ms budget is the reconnect-trap's output; until it lands, quality dimension #1
+remains UNMEASURED at 60.
+
+### 2026-08-10 — Pass 11: pause and settings; the game learns to photograph itself
+
+Actor: Claude Code (`claude-opus-5[1m]`). Scorecard entry in `docs/score.md`.
+
+**Shipped.** A pause modal (Menu button, Esc on desktop): `Time.timeScale = 0`,
+`TouchControls.Locked`, and the context tap consumed so a screen tap cannot reach
+through the panel and advance a line. Options in a new `GameSettings` (PlayerPrefs,
+deliberately outside Core and outside the save file, so New Game does not reset a
+volume): Sound, Voices, Haptics, Frame times, plus Save now. `GameAudio` keeps its
+authored mix and scales it by the settings every frame; `Haptics` gates at the call
+site; `FrameTimeHud` reads the sticky switch as well as the 3-finger gesture, and
+moved to the lower left where it no longer sits under the new Menu button.
+Authoring guide updated (`systems-README` §14 rewritten for the painted-sprite
+pipeline that replaced rigs in pass 8, and a new §15 for pause/settings).
+
+**Tooling — the durable half.** `-hvshot <path> [seconds]`: the game captures its own
+framebuffer and quits, writing an uncompressed TGA by hand because this project trims
+the built-in `screencapture`/`imageconversion` modules and a verification hook does
+not justify putting them back into every shipped build. Convert with
+`sips -s format png shot.tga --out shot.png`. This exists because driving macOS
+`screencapture` at the player window failed twice over: `osascript` is not permitted
+to send keystrokes here, and the window would not stay frontmost.
+
+**New landmine (#7).** An unfocused Unity player stops updating entirely — Update
+halts, coroutines never resume. The capture hook silently did nothing until it set
+`Application.runInBackground = true`. Any future headless/unattended verification run
+must do the same.
+
+**Two repo defects found and fixed.** `tools/build-mac.sh` copied
+`Assets/HiddenValley/Layout/heartwood.json`, deleted in the M0 dedup — with
+`set -euo pipefail` the documented Mac build path had been dead since. It now checks
+StreamingAssets and fails loudly. `FrameTimeHud` was allocating a `GUIStyle` every
+OnGUI, which is exactly the churn it exists to detect; hoisted.
+
+**Evidence, and a correction against my own first reading.** The day full-frame
+verify pass 10 was waiting on is now on record. The frame reads washed out; I cut the
+Day palette's sun 1.15 → 0.68 on that reading, then **sampled the pixels and reverted
+it** — ground is 0.63/0.37 sRGB (correct wet stone) and the whiteness is simultaneous
+contrast against 0.22 facades. The real defect is that buildings are too dark to show
+pass 10's painted plaster and slate at all in daylight. Named as the next visual pass
+with those numbers as the target. Mac p99 with HDR bloom: **9.3 ms** against 16.7
+(worst 17.7 ms is one load hitch) — the pass-9 HDR watch item resolves on Mac.
+
+Verified: 50/50 tests; Mac player builds, boots, restores a save, spawns 32/3/1;
+pause panel and day frame both captured by the game itself. Passes run: **none on
+device** — everything here is Mac-verified. Quality dimension #1 (60fps on the phone)
+remains UNMEASURED, unchanged by this pass.
+
 ---
 
 ## What the next session should do
 
-In priority order, and none of it is guesswork:
+1. **Play the Mac build** — walk Heartwood, talk to Vesk/Coll/Orrel/Pip, pick up an
+   item, open Bag/Account. Confirm feel before Phase 1 tuning.
+   `open ~/Library/Caches/HiddenValleyBuild/mac/HiddenValley.app`
+2. **Phase 1 on Mac first** (faster loop than device), then re-run `tools/build-ios.sh`
+   with the runtime-layout scene and clear the device pass.
+3. **Answer `[CONFIRM]` #5 and #8.** Art pipeline gates Phase 3; the title gates naming.
+4. Grey-box interest-density walk with a stopwatch before any art.
 
-1. **Answer `[CONFIRM]` #5 and #8.** Art pipeline gates Phase 3 scoping; the title gates
-   everything downstream of a name.
-2. **Open the project in Unity 6 on the Mac and make it compile.** The adapter layer is
-   unverified source. Expect package-version reconciliation and some API drift.
-3. **Run `tools/build-ios.sh` and clear the Phase 0 gate** — or find out the build loop is
-   slow, which is exactly what that gate exists to surface early.
-4. **Then Phase 1, and do not skip it.** Movement that is merely acceptable caps the
-   project's ceiling, and no amount of the content in this repo compensates.
-
-Grey-box the village-plus-forest layout and walk it for interest density **before** any
-art exists. Interest density is a layout property, and re-laying-out a finished scene is
-where projects die.
+Rebuild Mac: `tools/build-mac.sh`. Rebuild iOS: `TEAM_ID=32U8KR34UT tools/build-ios.sh`.

@@ -35,6 +35,16 @@ fi
 echo "Unity: $UNITY_BIN"
 echo
 
+# Build OUTSIDE the repo. The repo lives under an iCloud-synced path on the owner's
+# Mac, and the file provider re-tags outputs with Finder metadata faster than it can
+# be stripped — codesign then rejects them ("resource fork ... detritus not allowed").
+# ~/Library/Caches is never synced.
+BUILD_ROOT="${HV_BUILD_ROOT:-$HOME/Library/Caches/HiddenValleyBuild}"
+export HV_BUILD_DIR="$BUILD_ROOT/iOS"
+mkdir -p "$BUILD_ROOT"
+echo "Build root: $BUILD_ROOT"
+echo
+
 echo "== 1/3  Unity -> Xcode project =="
 "$UNITY_BIN" \
   -quit -batchmode -nographics \
@@ -44,19 +54,29 @@ echo "== 1/3  Unity -> Xcode project =="
 
 echo
 echo "== 2/3  Xcode -> .app =="
+
+# Belt and braces for anything that was tagged before the move out of the repo.
+xattr -rc "$BUILD_ROOT" 2>/dev/null || true
+
+# A concrete device destination lets -allowProvisioningDeviceRegistration register
+# the phone with the team; the generic destination cannot.
+DEST="generic/platform=iOS"
+[ -n "${DEVICE:-}" ] && DEST="platform=iOS,id=$DEVICE"
+
 xcodebuild \
-  -project Builds/iOS/Unity-iPhone.xcodeproj \
+  -project "$HV_BUILD_DIR/Unity-iPhone.xcodeproj" \
   -scheme Unity-iPhone \
   -configuration Release \
-  -destination 'generic/platform=iOS' \
-  -derivedDataPath Builds/DerivedData \
+  -destination "$DEST" \
+  -derivedDataPath "$BUILD_ROOT/DerivedData" \
   ${TEAM_ID:+DEVELOPMENT_TEAM="$TEAM_ID"} \
   -allowProvisioningUpdates \
+  -allowProvisioningDeviceRegistration \
   build | tail -20
 
 echo
 echo "== 3/3  install =="
-APP="$(find Builds/DerivedData/Build/Products -maxdepth 2 -name '*.app' | head -1)"
+APP="$(find "$BUILD_ROOT/DerivedData/Build/Products" -maxdepth 2 -name '*.app' | head -1)"
 if [ -z "$APP" ]; then
   echo "No .app produced." >&2
   exit 1
@@ -67,6 +87,25 @@ if command -v ios-deploy >/dev/null 2>&1; then
 else
   echo "ios-deploy not installed; built at: $APP"
   echo "  brew install ios-deploy"
+fi
+
+# -- optional TestFlight lane -------------------------------------------------
+# HV_UPLOAD=1 archives and uploads instead of installing locally. Requires the paid
+# Apple Developer Program plus App Store Connect API auth in the environment:
+#   HV_ASC_KEY_ID, HV_ASC_ISSUER_ID and the .p8 at ~/.appstoreconnect/private_keys/.
+if [ "${HV_UPLOAD:-0}" = "1" ]; then
+  echo
+  echo "== TestFlight upload =="
+  xcodebuild -project "$HV_BUILD_DIR/Unity-iPhone.xcodeproj" -scheme Unity-iPhone \
+    -configuration Release -destination 'generic/platform=iOS' \
+    -archivePath "$BUILD_ROOT/HiddenValley.xcarchive" \
+    ${TEAM_ID:+DEVELOPMENT_TEAM="$TEAM_ID"} -allowProvisioningUpdates archive | tail -3
+  xcodebuild -exportArchive -archivePath "$BUILD_ROOT/HiddenValley.xcarchive" \
+    -exportOptionsPlist "$(dirname "$0")/exportOptions.plist" \
+    -exportPath "$BUILD_ROOT/export" -allowProvisioningUpdates | tail -3
+  xcrun altool --upload-app -f "$BUILD_ROOT/export/"*.ipa -t ios \
+    --apiKey "${HV_ASC_KEY_ID:?set HV_ASC_KEY_ID}" \
+    --apiIssuer "${HV_ASC_ISSUER_ID:?set HV_ASC_ISSUER_ID}"
 fi
 
 ELAPSED=$(( $(date +%s) - START ))

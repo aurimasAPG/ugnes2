@@ -1,0 +1,53 @@
+{
+  "_why": "The one-shot effects were synthesized placeholders. These prompts re-render them in the world bible's material vocabulary — wet stone, cold water, thick paper, worked glass — and deliberately dry, because the scene's reverb is the scene's job, not the sample's. A one-shot with a baked tail smears when it fires every 0.38 s under a running player.",
+  "_excluded": "amb_valley, amb_night and sfx_water are NOT regenerated. All three are looping beds; amb_night in particular was synthesized to loop seamlessly (score pass 4), and a generated clip has no matching head and tail, so swapping it buys a click every loop. Replacing those needs a loop-aware pass, not a prompt.",
+  "prompt_influence": 0.6,
+  "effects": [
+    {
+      "file": "sfx_footstep",
+      "seconds": 0.7,
+      "prompt": "Foley recording of one single footstep, a leather boot sole landing firmly on a flagstone floor, loud and close, dry studio, no reverb, no background noise"
+    },
+    {
+      "file": "sfx_jump",
+      "seconds": 0.6,
+      "prompt": "A soft cloth and boot push-off from damp stone, a low scuff with a breath of fabric, dry and close, no reverb"
+    },
+    {
+      "file": "sfx_pickup",
+      "seconds": 0.7,
+      "prompt": "A small cold object lifted off stone into a cloth bag, one short clink of glass followed by muffled fabric, dry and close"
+    },
+    {
+      "file": "sfx_interact",
+      "seconds": 0.5,
+      "prompt": "A single loud dry wooden knock, one knuckle rap on a wooden door, starts immediately, close microphone, no reverb"
+    },
+    {
+      "file": "sfx_ui_open",
+      "seconds": 0.8,
+      "prompt": "A single sheet of thick handmade paper being unfolded once, dry crisp fibres, close and quiet, no music"
+    },
+    {
+      "file": "sfx_ui_close",
+      "seconds": 0.7,
+      "prompt": "A single sheet of thick handmade paper folded shut and pressed flat, soft, close and quiet, no music"
+    },
+    {
+      "file": "sfx_ui_click",
+      "seconds": 0.5,
+      "prompt": "A single clear soft tap of a fingertip on thick paper, immediate, dry, close microphone"
+    },
+    {
+      "file": "sfx_dialogue_advance",
+      "seconds": 0.5,
+      "prompt": "One single sharp wooden tick, a hard bead dropped once onto a wooden desk, loud, close, dry studio, no reverb, no background noise"
+    },
+    {
+      "file": "sfx_gust",
+      "seconds": 3.0,
+      "prompt": "A brief gust of cold wind moving through wet grass and low leaves, soft and airy, rising and falling once, no howl, no whistle"
+    }
+  ],
+  "_processing": "Raw generations are not shippable: measured onsets up to 210 ms, peaks from 0.00 (silent) to 0.97. Every one-shot is therefore trimmed to its onset and peak-normalised, and written as 44.1 kHz WAV rather than re-encoded to MP3 — a one-shot that fires every 0.38 s cannot carry a fifth of a second of leading silence."
+}

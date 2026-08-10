@@ -103,19 +103,31 @@ namespace HiddenValley.Core
         public override void Apply(GameState state)
         {
             if (!string.IsNullOrEmpty(Recipe))
-                state.Recipes.Add(Recipe);
+                state.LearnRecipe(Recipe);
 
             if (string.IsNullOrEmpty(Family)) return;
 
             foreach (var r in state.Content.Recipes)
-                if (r.Family == Family) state.Recipes.Add(r.Id);
+                if (r.Family == Family) state.LearnRecipe(r.Id);
         }
     }
 
     public sealed class LearnClueEffect : Effect
     {
         public string Clue;
-        public override void Apply(GameState state) => state.Clues.Add(Clue);
+        public override void Apply(GameState state) => state.LearnClue(Clue);
+    }
+
+    /// <summary>
+    /// Emits a presentation cue — a stinger, a Pip reaction, a screen moment — for the
+    /// view layer to interpret. State-wise it is nothing but a note in a transient list;
+    /// it exists so *content* can author moments without the view layer string-matching
+    /// dialogue text (which is how the first mystery sting was implemented, badly).
+    /// </summary>
+    public sealed class CueEffect : Effect
+    {
+        public string Id;
+        public override void Apply(GameState state) => state.EmitCue(Id);
     }
 
     /// <summary>Advances the clock to the next occurrence of a phase. Sleeping, waiting.</summary>

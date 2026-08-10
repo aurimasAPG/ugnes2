@@ -1,0 +1,12 @@
+{
+  "_why": "The stage directions were left unvoiced so that no character would be heard reading their own third-person description. That is still the rule — they are voiced here by a separate narrator, never by the character. Daniel is a steady, unhurried British read: the wet-stone register of the world bible, and deliberately not the theatrical storyteller voice, because these lines are observations, not narration-with-a-capital-N.",
+  "voice_id": "onwK4e9ZLuTAKqWW03F9",
+  "voice_name": "Daniel - Steady British",
+  "model_id": "eleven_multilingual_v2",
+  "voice_settings": {
+    "stability": 0.55,
+    "similarity_boost": 0.75,
+    "style": 0.0,
+    "use_speaker_boost": true
+  }
+}

@@ -17,7 +17,16 @@ namespace HiddenValley.Unity
     /// </summary>
     public sealed class FrameTimeHud : MonoBehaviour
     {
-        [SerializeField] private bool visible = true;
+        // Dev builds show the readout; release builds hide it. Two ways back: the
+        // 3-finger gesture (fast, undiscoverable) and the Settings switch (discoverable,
+        // sticky) — the latter is what the owner's device pass should use, because it
+        // survives a relaunch.
+        private bool visible = true;
+
+        private void Awake()
+        {
+            visible = UnityEngine.Debug.isDebugBuild || GameSettings.FrameHud;
+        }
         [SerializeField] private float windowSeconds = 10f;
         [SerializeField] private int targetFps = 60;
 
@@ -28,8 +37,14 @@ namespace HiddenValley.Unity
 
         private float _worst;
         private float _windowElapsed;
+        private bool _gestureHeld;
+        private float _nextTelemetryAt = 20f; // let load hitches wash out first
+        private float _sessionWorstAfterWarmup;
 
         public float WorstMs => _worst * 1000f;
+
+        private GUIStyle _style;
+        private int _styleForHeight;
 
         private void Update()
         {
@@ -44,11 +59,43 @@ namespace HiddenValley.Unity
             _windowElapsed += dt;
             if (_windowElapsed >= windowSeconds) ResetWindow();
 
-            bool reset = Input.touchCount >= 3;
+            bool gesture = Input.touchCount >= 3;
 #if UNITY_EDITOR
-            reset |= Input.GetKeyDown(KeyCode.F1);
+            gesture |= Input.GetKeyDown(KeyCode.F1);
 #endif
-            if (reset) ResetWindow();
+            if (gesture && !_gestureHeld)
+            {
+                visible = !visible; // 3-finger tap toggles; the reset rides along
+                GameSettings.FrameHud = visible;
+                ResetWindow();
+            }
+            _gestureHeld = gesture;
+
+            // Settings can flip it while the gesture is idle.
+            if (!UnityEngine.Debug.isDebugBuild && !gesture && visible != GameSettings.FrameHud)
+                visible = GameSettings.FrameHud;
+
+            // Telemetry: the device pass's numbers, written down by the device itself.
+            // Appends a line every 15 s after a 20 s warmup (load hitches excluded), so
+            // an unattended run on the phone still produces real measurements that can
+            // be pulled off via devicectl and recorded in the phase log.
+            if (Time.unscaledTime > 20f && dt > _sessionWorstAfterWarmup)
+                _sessionWorstAfterWarmup = dt;
+
+            if (Time.unscaledTime >= _nextTelemetryAt)
+            {
+                _nextTelemetryAt = Time.unscaledTime + 15f;
+                try
+                {
+                    System.IO.File.AppendAllText(
+                        System.IO.Path.Combine(Application.persistentDataPath, "frame-telemetry.txt"),
+                        $"{System.DateTime.UtcNow:HH:mm:ss} t={Time.unscaledTime:0}s " +
+                        $"now={Time.unscaledDeltaTime * 1000f:0.0}ms worst={WorstMs:0.0}ms " +
+                        $"p99={OnePercentHighMs():0.0}ms sessionWorst={_sessionWorstAfterWarmup * 1000f:0.0}ms " +
+                        $"mem={Profiler.GetTotalAllocatedMemoryLong() / (1024 * 1024)}MB\n");
+                }
+                catch { /* telemetry must never take the game down */ }
+            }
         }
 
         private void ResetWindow()
@@ -80,13 +127,18 @@ namespace HiddenValley.Unity
             float currentMs = Time.unscaledDeltaTime * 1000f;
             float worstMs = WorstMs;
 
-            var style = new GUIStyle(GUI.skin.label)
+            // Hoisted: a per-OnGUI GUIStyle is exactly the allocation churn the readout
+            // is here to detect, and it would show up in its own numbers.
+            if (_style == null || _styleForHeight != Screen.height)
             {
-                fontSize = Mathf.RoundToInt(Screen.height * 0.022f),
-                alignment = TextAnchor.UpperLeft
-            };
-
-            style.normal.textColor = worstMs > budgetMs ? Color.red : Color.green;
+                _styleForHeight = Screen.height;
+                _style = new GUIStyle(GUI.skin.label)
+                {
+                    fontSize = Mathf.RoundToInt(Screen.height * 0.022f),
+                    alignment = TextAnchor.UpperLeft
+                };
+            }
+            _style.normal.textColor = worstMs > budgetMs ? Color.red : Color.green;
 
             float memMb = Profiler.GetTotalAllocatedMemoryLong() / (1024f * 1024f);
 
@@ -96,10 +148,14 @@ namespace HiddenValley.Unity
                 $"1% hi {OnePercentHighMs():00.0} ms\n" +
                 $"mem  {memMb:0} MB";
 
-            var rect = new Rect(Screen.width * 0.02f, Screen.height * 0.02f,
+            // Mid-left, which is the only band nothing else claims: the top row belongs to
+            // Menu/Bag/Account and the bottom to the dialogue panel. Both were tried and
+            // both collided — a readout printed over Vesk's first line is worse than no
+            // readout, because it makes the dialogue look broken.
+            var rect = new Rect(Screen.width * 0.02f, Screen.height * 0.34f,
                                 Screen.width * 0.5f, Screen.height * 0.3f);
 
-            GUI.Label(rect, text, style);
+            GUI.Label(rect, text, _style);
         }
     }
 }

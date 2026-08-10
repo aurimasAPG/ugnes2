@@ -1,6 +1,5 @@
 using HiddenValley.Core;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace HiddenValley.Unity
 {
@@ -13,6 +12,9 @@ namespace HiddenValley.Unity
     ///
     /// Two binders may share an id-pair on one anchor — the dawn and dusk observation
     /// points do exactly that — so nothing here assumes a one-to-one mapping.
+    ///
+    /// Blocking is a plain Collider: there is no NavMeshObstacle because the scene ships
+    /// without a NavMesh (level0 corruption on iOS when any NavMeshSurface is present).
     /// </summary>
     public sealed class WorldObjectBinder : MonoBehaviour
     {
@@ -22,9 +24,6 @@ namespace HiddenValley.Unity
         [SerializeField] private GameObject visual;
 
         [Tooltip("Optional. Enabled only while the object blocks traversal.")]
-        [SerializeField] private NavMeshObstacle obstacle;
-
-        [Tooltip("Optional. Enabled only while the object blocks traversal.")]
         [SerializeField] private Collider blockingCollider;
 
         public string Id => worldObjectId;
@@ -32,6 +31,14 @@ namespace HiddenValley.Unity
         public bool IsInteractable { get; private set; }
 
         private GameBootstrap _boot;
+
+        /// <summary>Runtime wiring for <see cref="LayoutSpawner"/> (fields are otherwise private).</summary>
+        public void Configure(string id, Collider blocking = null, GameObject visualRoot = null)
+        {
+            worldObjectId = id;
+            blockingCollider = blocking;
+            visual = visualRoot;
+        }
 
         private void Start()
         {
@@ -83,8 +90,8 @@ namespace HiddenValley.Unity
             if (target.activeSelf != visible) target.SetActive(visible);
 
             bool blocks = world.Blocks(Def);
-            if (obstacle != null && obstacle.enabled != blocks) obstacle.enabled = blocks;
-            if (blockingCollider != null && blockingCollider.enabled != blocks) blockingCollider.enabled = blocks;
+            if (blockingCollider != null && blockingCollider.enabled != blocks)
+                blockingCollider.enabled = blocks;
 
             IsInteractable = world.CanInteract(Def);
         }

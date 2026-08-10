@@ -54,8 +54,44 @@ namespace HiddenValley.Core
             CheckNpcCapabilities(db, r);
             CheckDialogue(db, r);
             CheckReachability(db, r);
+            CheckFlags(db, r);
 
             return r;
+        }
+
+        /// <summary>
+        /// Flags are stringly-typed, so a typo'd key fails silently at runtime. A flag
+        /// set by content that nothing reads is either a typo or a UI request; only the
+        /// "ui." namespace is allowed to have no content reader (the presentation layer
+        /// consumes those — this rule exists because ui.open_crafting shipped with no
+        /// consumer anywhere and an entire NPC capability was unreachable). The reverse
+        /// check skips "solved." (written by the quest engine, not by content).
+        /// </summary>
+        private static void CheckFlags(ContentDatabase db, ValidationReport r)
+        {
+            var set = new HashSet<string>();
+            var read = new HashSet<string>();
+
+            foreach (var e in AllEffects(db))
+            {
+                if (e is SetFlagEffect s && !string.IsNullOrEmpty(s.Key)) set.Add(s.Key);
+                if (e is CycleFlagEffect c && !string.IsNullOrEmpty(c.Key)) set.Add(c.Key);
+            }
+
+            foreach (var condition in AllConditions(db))
+                if (condition is FlagCondition f && !string.IsNullOrEmpty(f.Key)) read.Add(f.Key);
+
+            foreach (var key in set)
+                if (!read.Contains(key) && !key.StartsWith("ui."))
+                    r.Warnings.Add(
+                        $"Flag '{key}' is set by content but never read by any condition. " +
+                        "Typo, dead effect, or a missing 'ui.' namespace if the presentation layer consumes it.");
+
+            foreach (var key in read)
+                if (!set.Contains(key) && !key.StartsWith("solved.") && !key.StartsWith("player."))
+                    r.Warnings.Add(
+                        $"Flag '{key}' is read by a condition but nothing in content ever sets it. " +
+                        "The condition can never pass unless code sets it.");
         }
 
         // ---- brief constraints -------------------------------------------------
