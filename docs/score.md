@@ -65,9 +65,10 @@ Content 6 → **7** (correction). **Overall 6.3.**
 
 ## Standing of the loop
 
-**6.65** after pass 11. Next points, in order of how cheaply they are earned:
+**6.75** after pass 12. Next points, in order of how cheaply they are earned:
 building albedo so daylight has surfaces (visual, measured target above), a UI font
-and paper-skinned toggles (UX), a second ambience variety pass (audio). Everything
+and paper-skinned toggles (UX), and a loop-aware pass on the ambience beds — the
+only audio left untouched by pass 12. Everything
 above ~8 still belongs to the played gates, not to this scorecard.
 
 Historical note — the standing as written after pass 6:
@@ -98,6 +99,46 @@ Pip's moth carries a true bloom halo; windows glow soft across the dark;
 painted characters grounded by blob shadows. Watch item: Mac 1%-high hit
 17.6 ms with HDR — the device re-measure decides if renderScale gives it back.
 One hot lamp pane to tame. Visual 7 → **7.5**. **Overall 6.6.**
+
+### Pass 12 — the narrator, and one-shots that are recordings (measured)
+
+Reported as "the game has no dialogue voice". It had 72 reads covering every quoted
+line — but the *opening* line of all three first conversations is a stage direction,
+and all of Pip's lines are stage directions, and stage directions were deliberately
+unvoiced. So the first thing anyone heard was a blip, and Pip was silent from end to
+end. The rule that produced this was right in intent (nobody should hear Vesk read
+his own stage directions in Vesk's voice) and wrong in effect.
+
+**Narrator.** All 21 stage directions rendered with a separate steady British read
+(Daniel), at `mp3_44100_192` — the ceiling the Creator tier exposes. The old rule is
+now enforced the other way round: a narration line may only point at `vo_narrator_*`,
+never at a character clip, and the regression test says exactly that. Nineteen
+orphaned takes — the character-voiced narration recorded and then unmapped back in
+M0, including all five of Pip's — are deleted rather than shipped.
+
+**One-shots.** Nine effects regenerated from foley prompts in the world's material
+vocabulary. Raw output was not shippable, and only measurement showed it:
+
+| | raw generation | after conforming |
+|---|---|---|
+| `sfx_footstep` | **silent** (peak 0.00) | peak 0.89, S/N 33.7 dB |
+| `sfx_interact` | 210 ms late | attack 0 ms |
+| `sfx_ui_click` | 73 ms late, peak 0.39 | attack 4 ms, peak 0.89 |
+| all nine | peaks 0.00–0.97 | peak 0.89, attack ≤4 ms, S/N 25–40 dB |
+
+Trimming is done by walking *back* from the loudest sample rather than forward from
+zero — a soft-attacked sound creeps over any forward threshold slowly, which is what
+left a fifth of a second of dead air in front of the tap. Output is 44.1 kHz WAV, not
+re-encoded MP3: macOS has no MP3 encoder and a second lossy pass is the wrong
+direction. `amb_valley`, `amb_night` and `sfx_water` are deliberately untouched —
+they are looping beds and a generated clip has no matching head and tail.
+
+Both jobs live in `tools/jobs/*.json` and run from `tools/audio-generate.py`, which
+is idempotent: adding one narration line costs one request.
+
+Audio 6 → **7**. Held at 7 rather than higher because every number here is measured,
+not heard — the ear pass belongs to the same human gate as the rest.
+**Overall 6.65 → 6.75.**
 
 ### Pass 11 — pause, settings, and the verification tooling (screenshot-verified)
 

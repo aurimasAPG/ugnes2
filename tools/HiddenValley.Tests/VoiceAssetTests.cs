@@ -47,8 +47,13 @@ namespace HiddenValley.Tests
         {
             // A character audibly reading their own stage directions ("Vesk does not look
             // up…") is a production-value tell. Narration lines mention the speaker in
-            // third person and contain no quoted speech; they must fall back to the short
-            // speaker cue, never to VO.
+            // third person and contain no quoted speech.
+            //
+            // They used to be left unmapped for that reason, which made the *opening*
+            // line of every first conversation silent — and Pip, whose every line is a
+            // stage direction, silent throughout. They are now voiced by a separate
+            // narrator, so the rule is no longer "never mapped" but "never mapped to a
+            // character clip": a narration line may only point at vo_narrator_*.
             var mapPath = Path.Combine(RepoRoot, "Assets", "StreamingAssets", "Audio", "voice_map.json");
             var root = JObject.Parse(File.ReadAllText(mapPath));
             var names = new (string speaker, string name)[]
@@ -64,9 +69,8 @@ namespace HiddenValley.Tests
                 var line = prop.Name.Substring(split + 1);
 
                 foreach (var (id, name) in names)
-                    if (speaker == id)
-                        Assert.False(line.Contains(name) && !line.Contains("\""),
-                            "narration line mapped to VO: " + prop.Name);
+                    if (speaker == id && line.Contains(name) && !line.Contains("\""))
+                        Assert.StartsWith("vo_narrator_", prop.Value.ToString());
             }
         }
 
